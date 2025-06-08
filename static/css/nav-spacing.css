@@ -1,0 +1,31 @@
+/* Navigation button spacing and font consistency */
+nav {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* Add consistent spacing between navigation items */
+}
+
+/* Ensure font consistency across all buttons */
+.button, button, .nav-button {
+  font-family: var(--font-family);
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+/* Consistent styling for buttons in header */
+header .button,
+header button.button,
+header .nav-button {
+  height: 40px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  nav {
+    gap: 8px; /* Slightly reduce spacing on smaller screens */
+  }
+}

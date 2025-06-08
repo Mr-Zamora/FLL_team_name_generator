@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Team Name Batch Selection - FLL Team Name Generator{% endblock %}
+
+{% block nav %}
+<a href="{{ url_for('vote') }}" class="button secondary">Vote</a>
+<button class="button secondary" id="showCustomForm">Add Custom Name</button>
+{% endblock %}
+
+{% block content %}
+<section class="batch-selection">
+    <div class="batch-header">
+        <h2>Select Your Favorite Team Names</h2>
+        <p>Click on names to select them for your shortlist. Choose 3-5 names you like best.</p>
+    </div>
+    
+    <div class="batch-controls">
+        <span id="selectionCount">0 names selected</span>
+        <div class="action-buttons">
+            <button id="generateMoreBtn" class="button secondary">Generate 20 More Names</button>
+            <button id="finalizeBtn" class="button primary" disabled>Finalise Shortlist</button>
+        </div>
+    </div>
+    
+    <div class="name-grid" id="nameGrid">
+        <div class="loading-container" id="loadingContainer">
+            <div class="loading-spinner"></div>
+            <p>Generating team names...</p>
+        </div>
+        <!-- Name tiles will be inserted here by JavaScript -->
+    </div>
+</section>
+
+<!-- Custom Name Modal -->
+<div class="modal" id="customNameModal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3>Add Your Own Team Name</h3>
+        
+        <form id="customNameForm">
+            <div class="form-group">
+                <label for="customName">Team Name:</label>
+                <input type="text" id="customName" name="customName" required maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="customDescription">Description (optional):</label>
+                <textarea id="customDescription" name="customDescription" maxlength="100"></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="button secondary" id="cancelCustom">Cancel</button>
+                <button type="submit" class="button primary">Add Name</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Hidden template for name tiles -->
+<template id="nameTileTemplate">
+    <div class="name-tile" data-id="">
+        <div class="name-content">
+            <h3 class="team-name"></h3>
+            <p class="description"></p>
+        </div>
+        <div class="selection-indicator">
+            <span class="checkmark">✓</span>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameGrid = document.getElementById('nameGrid');
+        const loadingContainer = document.getElementById('loadingContainer');
+        const selectionCountEl = document.getElementById('selectionCount');
+        const finalizeBtn = document.getElementById('finalizeBtn');
+        const generateMoreBtn = document.getElementById('generateMoreBtn');
+        const nameTileTemplate = document.getElementById('nameTileTemplate');
+        
+        let selectedNames = [];
+        let currentBatchId = null;
+        let allNames = [];
+        
+        // Function to update selection count and button state
+        function updateSelectionCount() {
+            const count = selectedNames.length;
+            selectionCountEl.textContent = `${count} name${count !== 1 ? 's' : ''} selected`;
+            
+            // Enable finalize button only if at least one name is selected
+            finalizeBtn.disabled = count === 0;
+        }
+        
+        // Function to toggle selection of a name
+        function toggleSelection(tile, nameData) {
+            if (tile.classList.contains('selected')) {
+                // Deselect
+                tile.classList.remove('selected');
+                selectedNames = selectedNames.filter(name => name.id !== nameData.id);
+                nameData.selected = false;
+            } else {
+                // Select
+                tile.classList.add('selected');
+                selectedNames.push(nameData);
+                nameData.selected = true;
+            }
+            
+            updateSelectionCount();
+        }
+        
+        // Function to create a name tile
+        function createNameTile(nameData) {
+            // Clone the template
+            const tile = nameTileTemplate.content.cloneNode(true).querySelector('.name-tile');
+            
+            // Set data attributes and content
+            tile.dataset.id = nameData.id;
+            tile.querySelector('.team-name').textContent = nameData.name;
+            tile.querySelector('.description').textContent = nameData.description;
+            
+            // Add click handler for selection
+            tile.addEventListener('click', function() {
+                toggleSelection(tile, nameData);
+            });
+            
+            // If already selected, mark as selected
+            if (nameData.selected) {
+                tile.classList.add('selected');
+            }
+            
+            return tile;
+        }
+        
+        // Function to display batch of names
+        function displayBatch(names) {
+            // Clear existing names
+            while (nameGrid.firstChild) {
+                nameGrid.removeChild(nameGrid.firstChild);
+            }
+            
+            // Store the names
+            allNames = names;
+            
+            // Create and append tiles
+            const fragment = document.createDocumentFragment();
+            names.forEach(nameData => {
+                const tile = createNameTile(nameData);
+                fragment.appendChild(tile);
+            });
+            
+            nameGrid.appendChild(fragment);
+            
+            // Hide loading indicator
+            loadingContainer.style.display = 'none';
+        }
+        
+        // Function to generate a new batch
+        function generateBatch() {
+            // Show loading indicator
+            loadingContainer.style.display = 'flex';
+            nameGrid.appendChild(loadingContainer);
+            
+            // Reset selection
+            selectedNames = [];
+            updateSelectionCount();
+            
+            // Call API to generate batch
+            fetch('/api/generate-batch', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentBatchId = data.batch_id;
+                    displayBatch(data.names);
+                } else {
+                    alert('Error: ' + (data.error || 'Could not generate names'));
+                    loadingContainer.style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                loadingContainer.style.display = 'none';
+            });
+        }
+        
+        // Function to finalize selection
+        function finalizeSelection() {
+            if (selectedNames.length === 0) {
+                alert('Please select at least one name before finalizing.');
+                return;
+            }
+            
+            // Store selected names in session storage for the finalize page
+            sessionStorage.setItem('selectedNames', JSON.stringify(selectedNames));
+            sessionStorage.setItem('batchId', currentBatchId);
+            
+            // Navigate to finalize page
+            window.location.href = '{{ url_for("finalize") }}';
+        }
+        
+        // Event listeners
+        generateMoreBtn.addEventListener('click', generateBatch);
+        finalizeBtn.addEventListener('click', finalizeSelection);
+        
+        // Generate initial batch on page load
+        generateBatch();
+        
+        // Custom Name Modal Functionality
+        const modal = document.getElementById('customNameModal');
+        const showButton = document.getElementById('showCustomForm');
+        const closeButton = document.querySelector('.close-button');
+        const cancelButton = document.getElementById('cancelCustom');
+        const customForm = document.getElementById('customNameForm');
+        
+        // Show modal
+        showButton.addEventListener('click', function() {
+            modal.classList.add('show');
+        });
+        
+        // Hide modal
+        function hideModal() {
+            modal.classList.remove('show');
+        }
+        
+        closeButton.addEventListener('click', hideModal);
+        cancelButton.addEventListener('click', hideModal);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                hideModal();
+            }
+        });
+        
+        // Handle form submission
+        customForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('customName').value.trim();
+            const description = document.getElementById('customDescription').value.trim() || "A custom team name created by our team!";
+            
+            if (!name) {
+                alert('Please enter a team name');
+                return;
+            }
+            
+            // Submit custom name to API
+            fetch('/api/add-custom-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Your team name has been added!');
+                    customForm.reset();
+                    hideModal();
+                } else {
+                    alert('Error: ' + (data.error || 'Could not add team name'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Reset - FLL Team Name Generator{% endblock %}
+
+{% block nav %}
+<a href="{{ url_for('index') }}" class="button secondary">Back to Home</a>
+{% endblock %}
+
+{% block content %}
+<section class="admin-section">
+    <h2>Admin Reset Options</h2>
+    <p class="warning">Warning: These actions cannot be undone!</p>
+    
+    <div class="admin-actions">
+        <div class="admin-card">
+            <h3>Remove Zero-Vote Names</h3>
+            <p>Remove all team names that have 0 votes.</p>
+            <button id="removeZeroVotesBtn" class="button danger">Remove Zero-Vote Names</button>
+        </div>
+        
+        <div class="admin-card">
+            <h3>Remove All Names</h3>
+            <p>Remove ALL team names from the database.</p>
+            <button id="removeAllBtn" class="button danger">Remove All Names</button>
+        </div>
+    </div>
+    
+    <div id="status" class="status-message"></div>
+    <div id="backup-info" class="backup-info">
+        <h3>Backup Information</h3>
+        <p>No backups created yet.</p>
+    </div>
+</section>
+
+<!-- Confirmation Modal -->
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3 id="confirmTitle">Confirm Action</h3>
+        <p id="confirmMessage">Are you sure you want to proceed?</p>
+        
+        <div class="form-actions">
+            <button id="cancelBtn" class="button secondary">Cancel</button>
+            <button id="confirmBtn" class="button danger">Confirm</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const removeZeroVotesBtn = document.getElementById('removeZeroVotesBtn');
+        const removeAllBtn = document.getElementById('removeAllBtn');
+        const modal = document.getElementById('confirmModal');
+        const closeButton = document.querySelector('.close-button');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const confirmBtn = document.getElementById('confirmBtn');
+        const confirmTitle = document.getElementById('confirmTitle');
+        const confirmMessage = document.getElementById('confirmMessage');
+        const statusDiv = document.getElementById('status');
+        
+        let currentAction = null;
+        
+        // Show confirmation modal with appropriate message
+        function showConfirmation(action, title, message) {
+            currentAction = action;
+            confirmTitle.textContent = title;
+            confirmMessage.textContent = message;
+            modal.classList.add('show');
+        }
+        
+        // Hide modal
+        function hideModal() {
+            modal.classList.remove('show');
+        }
+        
+        // Display status message
+        function showStatus(message, isError = false) {
+            statusDiv.textContent = message;
+            statusDiv.className = 'status-message ' + (isError ? 'error' : 'success');
+            statusDiv.style.display = 'block';
+            
+            // Auto-hide after 5 seconds
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Update backup information
+        function updateBackupInfo(backupFile) {
+            const backupInfoDiv = document.getElementById('backup-info');
+            if (backupFile) {
+                const timestamp = backupFile.replace('names-', '').replace('.json.bak', '');
+                const formattedTimestamp = timestamp.replace(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/, '$1-$2-$3 $4:$5:$6');
+                
+                backupInfoDiv.innerHTML = `
+                    <h3>Backup Information</h3>
+                    <p>A backup was created before this operation:</p>
+                    <div class="backup-details">
+                        <p><strong>Filename:</strong> ${backupFile}</p>
+                        <p><strong>Created:</strong> ${formattedTimestamp}</p>
+                        <p><strong>Location:</strong> data/backups/${backupFile}</p>
+                    </div>
+                    <p class="backup-note">This backup can be used to restore data if needed.</p>
+                `;
+                backupInfoDiv.style.display = 'block';
+            }
+        }
+        
+        // Remove zero-vote names
+        removeZeroVotesBtn.addEventListener('click', function() {
+            showConfirmation(
+                'removeZeroVotes',
+                'Remove Zero-Vote Names',
+                'Are you sure you want to remove all team names with 0 votes? This action cannot be undone.'
+            );
+        });
+        
+        // Remove all names
+        removeAllBtn.addEventListener('click', function() {
+            showConfirmation(
+                'removeAll',
+                'Remove ALL Names',
+                'WARNING: This will delete ALL team names from the database. This action cannot be undone!'
+            );
+        });
+        
+        // Close modal events
+        closeButton.addEventListener('click', hideModal);
+        cancelBtn.addEventListener('click', hideModal);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                hideModal();
+            }
+        });
+        
+        // Handle confirmation
+        confirmBtn.addEventListener('click', function() {
+            // Disable button to prevent multiple clicks
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Processing...';
+            
+            let endpoint = '';
+            
+            if (currentAction === 'removeZeroVotes') {
+                endpoint = '/api/remove-zero-votes';
+            } else if (currentAction === 'removeAll') {
+                endpoint = '/api/remove-all-names';
+            }
+            
+            // Make API request
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                hideModal();
+                
+                if (data.success) {
+                    showStatus(data.message || 'Operation completed successfully.');
+                    if (data.backup_file) {
+                        updateBackupInfo(data.backup_file);
+                    }
+                } else {
+                    showStatus(data.error || 'An error occurred.', true);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                hideModal();
+                showStatus('An error occurred. Please try again.', true);
+            })
+            .finally(() => {
+                // Re-enable button
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Confirm';
+            });
+        });
+    });
+</script>
+<style>
+    .admin-section {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+    
+    .warning {
+        color: var(--danger);
+        font-weight: bold;
+        margin-bottom: 20px;
+    }
+    
+    .admin-actions {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+    
+    .admin-card {
+        background-color: var(--white);
+        border-radius: var(--border-radius);
+        padding: 20px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .admin-card h3 {
+        color: var(--dark-gray);
+        margin-bottom: 10px;
+    }
+    
+    .admin-card p {
+        margin-bottom: 20px;
+    }
+    
+    .status-message {
+        padding: 10px 15px;
+        border-radius: var(--border-radius);
+        margin-top: 20px;
+        display: none;
+    }
+    
+    .status-message.success {
+        background-color: #e6f7e6;
+        color: var(--success);
+        border: 1px solid var(--success);
+    }
+    
+    .status-message.error {
+        background-color: #ffeaea;
+        color: var(--danger);
+        border: 1px solid var(--danger);
+    }
+    
+    .backup-info {
+        margin-top: 30px;
+        padding: 20px;
+        background-color: #f5f9ff;
+        border: 1px solid #cce0ff;
+        border-radius: var(--border-radius);
+        display: none;
+    }
+    
+    .backup-info h3 {
+        color: var(--primary);
+        margin-bottom: 15px;
+    }
+    
+    .backup-details {
+        background-color: var(--white);
+        padding: 15px;
+        border-radius: var(--border-radius);
+        margin: 10px 0;
+        border-left: 4px solid var(--primary);
+    }
+    
+    .backup-note {
+        font-style: italic;
+        color: var(--dark-gray);
+        margin-top: 10px;
+    }
+</style>
+{% endblock %}

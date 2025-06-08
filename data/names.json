@@ -1,0 +1,186 @@
+[
+  {
+    "id": "80a90116-aee9-46e0-9cb4-5dd83323613e",
+    "name": "Block Masters",
+    "description": "Building the future, one brick at a time!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:14:53.914685"
+  },
+  {
+    "id": "7a9954cf-aad7-4916-8af5-976d34d772dc",
+    "name": "Techno Titans",
+    "description": "Where creativity meets technology in perfect harmony.",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:15:05.015647"
+  },
+  {
+    "id": "ac649753-efa8-4f08-bf62-9c31ccff7629",
+    "name": "Logic Legends",
+    "description": "Bringing LEGO innovation to life with passion and skill!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:15:09.363227"
+  },
+  {
+    "id": "edaad5e6-3ee9-4743-8d34-456fecca6fa6",
+    "name": "The Robo-Glyphs",
+    "description": "Connecting ancient wisdom with modern innovation!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:52:36.813138"
+  },
+  {
+    "id": "987cc54f-a207-41fc-9ae5-6d91c9e41307",
+    "name": "Zamorabots",
+    "description": "Mr Zamora's Robots",
+    "votes": 1,
+    "source": "user",
+    "created_at": "2025-06-07T19:58:36.924848"
+  },
+  {
+    "id": "e10246db-5acc-44d9-bb95-aba868888cb4",
+    "name": "Synergy Sparks",
+    "description": "Synergy Sparks: Igniting innovation, building awesome robots, and sparking teamwork to solve real-world problems!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:59:20.022834"
+  },
+  {
+    "id": "fe88b72c-f15b-41f2-a607-a309f4d0434f",
+    "name": "ElectroBrick Mavericks",
+    "description": "ElectroBrick Mavericks: Building the future, one brick at a time with electrifying ideas and robotic innovation!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T20:20:16.217553"
+  },
+  {
+    "id": "d270411c-1ed5-4f7a-82a9-6bd9caeb56bf",
+    "name": "Kinetic Koalas",
+    "description": "Kinetic Koalas: Hugging innovation, climbing to success, one awesome robot at a time!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T21:35:30.632413"
+  },
+  {
+    "batch_id": "20250608-074636-16a03abf",
+    "description": "Chromatic Circuits: Building colorful robots, coding bright futures, one LEGO brick at a time!",
+    "generation_method": "gemini",
+    "id": "f83228e5-2f2c-4dd1-a289-a33f6e2962d9",
+    "name": "Chromatic Circuits",
+    "selected": true,
+    "timestamp": 1749332796.7062445,
+    "votes": 1
+  },
+  {
+    "batch_id": "20250608-074934-afa01dd1",
+    "description": "Unearthing the past to build a better future!",
+    "generation_method": "local_fallback",
+    "id": "9cdc480f-8234-4969-a7f9-be23ee012162",
+    "name": "Artifact Alliance",
+    "selected": true,
+    "timestamp": 1749332974.2821941,
+    "votes": 1
+  },
+  {
+    "batch_id": "20250608-074934-afa01dd1",
+    "description": "Excavating ideas to construct tomorrow's innovations!",
+    "generation_method": "local_fallback",
+    "id": "e7659800-3631-4d83-a313-0e83d5e3a41b",
+    "name": "Alpha Stars",
+    "selected": true,
+    "timestamp": 1749332974.2821941,
+    "votes": 1
+  },
+  {
+    "batch_id": "20250608-090149-5786769d",
+    "description": "Mastering technology to solve tomorrow's challenges.",
+    "generation_method": "local_fallback",
+    "id": "f7f08ac3-fdb9-4e65-920e-8651663e86a1",
+    "name": "Tech Titans",
+    "selected": true,
+    "timestamp": 1749337309.6567914,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-090149-5786769d",
+    "description": "Exploring the frontiers of robotics with creativity and teamwork.",
+    "generation_method": "local_fallback",
+    "id": "eb2fea15-edbc-4e5c-a89a-c4719e871f1b",
+    "name": "Robo Rangers",
+    "selected": true,
+    "timestamp": 1749337309.6567914,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-090149-5786769d",
+    "description": "Mastering algorithms to solve complex robotics challenges.",
+    "generation_method": "local_fallback",
+    "id": "665ffd8c-f819-414e-bc24-dfee1967a788",
+    "name": "Algorithm Aces",
+    "selected": true,
+    "timestamp": 1749337309.6567914,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-165500-7a4ebad0",
+    "description": "Embracing the one-sided, infinite loop of innovation and propulsion to move forward with LEGO robotics!",
+    "generation_method": "gemini",
+    "id": "96493fa6-7d81-4d04-bf6f-62c9d91e877d",
+    "name": "M\u00f6bius Motors",
+    "selected": true,
+    "timestamp": 1749365700.3383937,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-165500-7a4ebad0",
+    "description": "A team shining with bright ideas, propelling innovation through intricate LEGO designs, like miniature stars in motion!",
+    "generation_method": "gemini",
+    "id": "053ef908-50f7-4fc8-8a41-ac18b954878c",
+    "name": "Stellar Sprockets",
+    "selected": true,
+    "timestamp": 1749365700.3383937,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-165500-7a4ebad0",
+    "description": "Exploring the vast cosmos of innovation, one digital hiccup at a time!",
+    "generation_method": "gemini",
+    "id": "ee811ab2-bec2-4080-bded-72506fbc53a4",
+    "name": "Glitch Galaxies",
+    "selected": true,
+    "timestamp": 1749365700.3383937,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-204129-164f450b",
+    "description": "Reaching for the stars by building amazing LEGO robotics using cutting-edge technology!",
+    "generation_method": "gemini",
+    "id": "1205379e-2007-4071-a1da-c341a41490af",
+    "name": "Stellar Circuits",
+    "selected": true,
+    "timestamp": 1749379289.665697,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-204129-164f450b",
+    "description": "Igniting innovation and creative problem-solving by connecting brilliant minds, just like the synapses in a brain!",
+    "generation_method": "gemini",
+    "id": "fcefd3d4-7b27-415a-9898-4bd06be6f751",
+    "name": "Synaptic Sparks",
+    "selected": true,
+    "timestamp": 1749379289.665697,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-204129-164f450b",
+    "description": "Swift and intricately designed, our robotics team explores the boundless possibilities of complex patterns in technology!",
+    "generation_method": "gemini",
+    "id": "92b3f7a2-f03e-441e-a2ce-2a21d7fc0f04",
+    "name": "Fractal Falcons",
+    "selected": true,
+    "timestamp": 1749379289.665697,
+    "votes": 0
+  }
+]

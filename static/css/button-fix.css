@@ -1,0 +1,47 @@
+/* Button height consistency fix */
+.nav-button {
+  padding: var(--spacing-md) var(--spacing-lg);
+  font-size: 1rem;
+  border: none;
+}
+
+/* Ensure consistent font weight across all buttons */
+.button, .nav-button {
+  font-weight: 500 !important; /* Override any other font-weight settings */
+}
+
+/* Ensure all buttons in the header have the same height */
+header .button,
+header .nav-button {
+  height: 40px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap; /* Prevent text wrapping */
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 480px) {
+  header .button,
+  header .nav-button {
+    padding: var(--spacing-sm) var(--spacing-md);
+    font-size: 0.9rem;
+  }
+  
+  /* Stack buttons vertically on very small screens */
+  @media (max-width: 360px) {
+    header nav {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    
+    header .button,
+    header .nav-button {
+      width: 100%;
+      margin-left: 0 !important;
+    }
+  }
+}

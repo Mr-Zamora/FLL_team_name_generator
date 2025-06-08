@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block title %}Finalize Team Names - FLL Team Name Generator{% endblock %}
+
+{% block nav %}
+<a href="{{ url_for('batch') }}" class="button secondary">Back to Selection</a>
+{% endblock %}
+
+{% block content %}
+<section class="finalize-screen">
+    <div class="confirmation-container">
+        <div class="confirmation-message">
+            <h2>✅ Your shortlisted names have been submitted</h2>
+            <p>You can now vote with your team.</p>
+        </div>
+        
+        <div class="selected-names-preview">
+            <h3>You submitted:</h3>
+            <ul id="selectedNamesList">
+                <!-- Selected names will be inserted here by JavaScript -->
+            </ul>
+        </div>
+        
+        <div class="action-buttons">
+            <a href="{{ url_for('batch') }}" class="button secondary">🔄 Generate Another Batch</a>
+            <a href="{{ url_for('vote') }}" class="button primary">🗳 Go to Voting Screen</a>
+        </div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selectedNamesList = document.getElementById('selectedNamesList');
+        
+        // Get selected names from session storage
+        const selectedNamesJson = sessionStorage.getItem('selectedNames');
+        const batchId = sessionStorage.getItem('batchId');
+        
+        if (selectedNamesJson) {
+            const selectedNames = JSON.parse(selectedNamesJson);
+            
+            // Display selected names
+            selectedNames.forEach(nameData => {
+                const listItem = document.createElement('li');
+                listItem.textContent = nameData.name;
+                selectedNamesList.appendChild(listItem);
+            });
+            
+            // Save selected names to the server
+            saveSelectedNames(selectedNames);
+        } else {
+            // No selected names found, redirect to batch selection
+            window.location.href = '{{ url_for("batch") }}';
+        }
+        
+        // Function to save selected names to the server
+        function saveSelectedNames(names) {
+            fetch('/api/save-shortlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    names: names,
+                    batch_id: batchId
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Error saving names:', data.error);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+        
+        // Add animation classes after a short delay
+        setTimeout(() => {
+            document.querySelector('.confirmation-container').classList.add('show');
+        }, 100);
+    });
+</script>
+{% endblock %}

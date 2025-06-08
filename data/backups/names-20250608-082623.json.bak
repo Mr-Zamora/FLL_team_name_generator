@@ -1,0 +1,106 @@
+[
+  {
+    "id": "80a90116-aee9-46e0-9cb4-5dd83323613e",
+    "name": "Block Masters",
+    "description": "Building the future, one brick at a time!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:14:53.914685"
+  },
+  {
+    "id": "7a9954cf-aad7-4916-8af5-976d34d772dc",
+    "name": "Techno Titans",
+    "description": "Where creativity meets technology in perfect harmony.",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:15:05.015647"
+  },
+  {
+    "id": "ac649753-efa8-4f08-bf62-9c31ccff7629",
+    "name": "Logic Legends",
+    "description": "Bringing LEGO innovation to life with passion and skill!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:15:09.363227"
+  },
+  {
+    "id": "edaad5e6-3ee9-4743-8d34-456fecca6fa6",
+    "name": "The Robo-Glyphs",
+    "description": "Connecting ancient wisdom with modern innovation!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:52:36.813138"
+  },
+  {
+    "id": "987cc54f-a207-41fc-9ae5-6d91c9e41307",
+    "name": "Zamorabots",
+    "description": "Mr Zamora's Robots",
+    "votes": 1,
+    "source": "user",
+    "created_at": "2025-06-07T19:58:36.924848"
+  },
+  {
+    "id": "e10246db-5acc-44d9-bb95-aba868888cb4",
+    "name": "Synergy Sparks",
+    "description": "Synergy Sparks: Igniting innovation, building awesome robots, and sparking teamwork to solve real-world problems!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T19:59:20.022834"
+  },
+  {
+    "id": "fe88b72c-f15b-41f2-a607-a309f4d0434f",
+    "name": "ElectroBrick Mavericks",
+    "description": "ElectroBrick Mavericks: Building the future, one brick at a time with electrifying ideas and robotic innovation!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T20:20:16.217553"
+  },
+  {
+    "id": "d270411c-1ed5-4f7a-82a9-6bd9caeb56bf",
+    "name": "Kinetic Koalas",
+    "description": "Kinetic Koalas: Hugging innovation, climbing to success, one awesome robot at a time!",
+    "votes": 1,
+    "source": "ai",
+    "created_at": "2025-06-07T21:35:30.632413"
+  },
+  {
+    "batch_id": "20250608-074636-16a03abf",
+    "description": "Kinetic Contraptions: Building awesome, moving machines to solve problems with LEGOs!",
+    "generation_method": "gemini",
+    "id": "2f8d5362-3a09-40ae-b408-09ffee43c2f2",
+    "name": "Kinetic Contraptions",
+    "selected": true,
+    "timestamp": 1749332796.7062445,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250608-074636-16a03abf",
+    "description": "Chromatic Circuits: Building colorful robots, coding bright futures, one LEGO brick at a time!",
+    "generation_method": "gemini",
+    "id": "f83228e5-2f2c-4dd1-a289-a33f6e2962d9",
+    "name": "Chromatic Circuits",
+    "selected": true,
+    "timestamp": 1749332796.7062445,
+    "votes": 1
+  },
+  {
+    "batch_id": "20250608-074934-afa01dd1",
+    "description": "Unearthing the past to build a better future!",
+    "generation_method": "local_fallback",
+    "id": "9cdc480f-8234-4969-a7f9-be23ee012162",
+    "name": "Artifact Alliance",
+    "selected": true,
+    "timestamp": 1749332974.2821941,
+    "votes": 1
+  },
+  {
+    "batch_id": "20250608-074934-afa01dd1",
+    "description": "Excavating ideas to construct tomorrow's innovations!",
+    "generation_method": "local_fallback",
+    "id": "e7659800-3631-4d83-a313-0e83d5e3a41b",
+    "name": "Alpha Stars",
+    "selected": true,
+    "timestamp": 1749332974.2821941,
+    "votes": 1
+  }
+]

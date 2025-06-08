@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Names - FLL Team Name Generator{% endblock %}
+
+{% block nav %}
+<button class="button secondary" id="showCustomForm">Add Custom Name</button>
+<a href="{{ url_for('vote') }}" class="button secondary" style="margin-left: 10px;">Vote</a>
+{% endblock %}
+
+{% block content %}
+<section class="generate">
+    <div class="name-display">
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Generating team name...</p>
+        </div>
+        
+        <div class="name-content" id="nameContent" style="display: none;">
+            <h2 id="teamName">Team Name</h2>
+            <p id="teamDescription">Description will appear here.</p>
+            <div class="source-badge" id="sourceIndicator"></div>
+        </div>
+    </div>
+    
+    <div class="action-buttons">
+        <button class="button success" id="saveButton">Yes! Save This</button>
+        <button class="button danger" id="skipButton">No, Skip</button>
+        <button class="button primary" id="generateButton">Generate New</button>
+    </div>
+</section>
+
+<!-- Custom Name Modal -->
+<div class="modal" id="customNameModal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3>Add Your Own Team Name</h3>
+        
+        <form id="customNameForm">
+            <div class="form-group">
+                <label for="customName">Team Name:</label>
+                <input type="text" id="customName" name="customName" required maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="customDescription">Description (optional):</label>
+                <textarea id="customDescription" name="customDescription" maxlength="100"></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="button secondary" id="cancelCustom">Cancel</button>
+                <button type="submit" class="button primary">Add Name</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const nameContent = document.getElementById('nameContent');
+        const teamNameElement = document.getElementById('teamName');
+        const teamDescriptionElement = document.getElementById('teamDescription');
+        const saveButton = document.getElementById('saveButton');
+        const skipButton = document.getElementById('skipButton');
+        const generateButton = document.getElementById('generateButton');
+        
+        // Custom name modal elements
+        const showCustomFormButton = document.getElementById('showCustomForm');
+        const customNameModal = document.getElementById('customNameModal');
+        const closeButton = customNameModal.querySelector('.close-button');
+        const cancelCustomButton = document.getElementById('cancelCustom');
+        const customNameForm = document.getElementById('customNameForm');
+        
+        let currentName = null;
+        
+        // Function to generate a new team name
+        function generateTeamName() {
+            // Show loading indicator
+            loadingIndicator.style.display = 'flex';
+            nameContent.style.display = 'none';
+            
+            // Call the API to generate a name
+            fetch('/api/generate-name', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                // Add cache-busting parameter
+                cache: 'no-store'
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Store the current name
+                currentName = data;
+                
+                // Update the UI
+                teamNameElement.textContent = data.name;
+                teamDescriptionElement.textContent = data.description;
+                
+                // Display the source indicator
+                const sourceIndicator = document.getElementById('sourceIndicator');
+                sourceIndicator.className = 'source-badge';
+                
+                if (data.generation_method === 'gemini') {
+                    sourceIndicator.classList.add('gemini');
+                    sourceIndicator.textContent = 'AI Generated';
+                } else if (data.generation_method === 'local' || data.generation_method === 'local_fallback') {
+                    sourceIndicator.classList.add('local');
+                    sourceIndicator.textContent = 'Locally Generated';
+                } else if (data.generation_method === 'local_description') {
+                    sourceIndicator.classList.add('mixed');
+                    sourceIndicator.textContent = 'Mixed Source';
+                }
+                
+                // Hide loading, show content
+                loadingIndicator.style.display = 'none';
+                nameContent.style.display = 'block';
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while generating a team name. Please try again.');
+                loadingIndicator.style.display = 'none';
+            });
+        }
+        
+        // Function to save the current name
+        function saveName() {
+            if (!currentName) return;
+            
+            // Show saving feedback
+            saveButton.disabled = true;
+            saveButton.textContent = 'Saving...';
+            
+            // Call API to save the name
+            fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: currentName.name,
+                    description: currentName.description,
+                    source: 'ai'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success feedback
+                    saveButton.textContent = 'Saved!';
+                    setTimeout(() => {
+                        saveButton.textContent = 'Yes! Save This';
+                        saveButton.disabled = false;
+                        
+                        // Generate a new name after saving
+                        generateTeamName();
+                    }, 1000);
+                } else {
+                    alert('Error: ' + (data.error || 'Could not save team name'));
+                    saveButton.textContent = 'Yes! Save This';
+                    saveButton.disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                saveButton.textContent = 'Yes! Save This';
+                saveButton.disabled = false;
+            });
+        }
+        
+        // Function to handle custom name submission
+        function submitCustomName(event) {
+            event.preventDefault();
+            
+            const customName = document.getElementById('customName').value.trim();
+            const customDescription = document.getElementById('customDescription').value.trim() || 
+                                      `A custom team name created by the team.`;
+            
+            if (!customName) {
+                alert('Please enter a team name');
+                return;
+            }
+            
+            // Show saving feedback
+            const submitButton = customNameForm.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Saving...';
+            
+            // Call API to save the custom name
+            fetch('/api/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: customName,
+                    description: customDescription,
+                    source: 'custom'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Close modal and reset form
+                    customNameModal.style.display = 'none';
+                    customNameForm.reset();
+                    
+                    // Show success message
+                    alert('Custom team name saved successfully!');
+                } else {
+                    alert('Error: ' + (data.error || 'Could not save team name'));
+                }
+                submitButton.textContent = 'Add Name';
+                submitButton.disabled = false;
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+                submitButton.textContent = 'Add Name';
+                submitButton.disabled = false;
+            });
+        }
+        
+        // Function to open modal
+        function openCustomModal() {
+            customNameModal.style.display = 'flex';
+        }
+        
+        // Function to close modal
+        function closeCustomModal() {
+            customNameModal.style.display = 'none';
+            customNameForm.reset();
+        }
+        
+        // Event listeners
+        saveButton.addEventListener('click', saveName);
+        skipButton.addEventListener('click', generateTeamName);
+        generateButton.addEventListener('click', generateTeamName);
+        
+        // Custom name modal event listeners
+        showCustomFormButton.addEventListener('click', openCustomModal);
+        closeButton.addEventListener('click', closeCustomModal);
+        cancelCustomButton.addEventListener('click', closeCustomModal);
+        customNameForm.addEventListener('submit', submitCustomName);
+        
+        // Close modal if clicking outside of it
+        window.addEventListener('click', function(event) {
+            if (event.target === customNameModal) {
+                closeCustomModal();
+            }
+        });
+        
+        // Generate a name when the page loads
+        generateTeamName();
+    });
+</script>
+{% endblock %}

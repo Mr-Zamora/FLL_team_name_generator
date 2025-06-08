@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Vote - FLL Team Name Generator{% endblock %}
+
+{% block nav %}
+<a href="{{ url_for('batch') }}" class="button secondary">Generate Names</a>
+<button class="button secondary" id="showCustomForm">Add Custom Name</button>
+{% endblock %}
+
+{% block content %}
+<section class="vote">
+    <h2>Vote for Your Favourite Team Names</h2>
+    <p>Click on a team name to vote for it. The most popular names will rise to the top!</p>
+    
+    <div class="name-grid" id="nameGrid">
+        <!-- Names will be loaded here dynamically -->
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div>
+            <p>Loading team names...</p>
+        </div>
+    </div>
+    
+    <div class="no-names" id="noNames" style="display: none;">
+        <p>No team names have been saved yet. Generate a batch of names to get started!</p>
+        <a href="{{ url_for('batch') }}" class="button primary">Generate 20 Team Names</a>
+    </div>
+</section>
+
+<!-- Custom Name Modal -->
+<div class="modal" id="customNameModal">
+    <div class="modal-content">
+        <span class="close-button">&times;</span>
+        <h3>Add Your Own Team Name</h3>
+        
+        <form id="customNameForm">
+            <div class="form-group">
+                <label for="customName">Team Name:</label>
+                <input type="text" id="customName" name="customName" required maxlength="50">
+            </div>
+            
+            <div class="form-group">
+                <label for="customDescription">Description (optional):</label>
+                <textarea id="customDescription" name="customDescription" maxlength="100"></textarea>
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="button secondary" id="cancelCustom">Cancel</button>
+                <button type="submit" class="button primary">Add Name</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+{{ super() }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const nameGrid = document.getElementById('nameGrid');
+        const loadingIndicator = document.getElementById('loadingIndicator');
+        const noNames = document.getElementById('noNames');
+        
+        // Function to load all saved names
+        function loadNames() {
+            fetch('/api/names')
+                .then(response => response.json())
+                .then(names => {
+                    // Hide loading indicator
+                    loadingIndicator.style.display = 'none';
+                    
+                    if (names.length === 0) {
+                        // Show no names message
+                        noNames.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Sort names by votes (highest first)
+                    names.sort((a, b) => b.votes - a.votes);
+                    
+                    // Clear the grid
+                    nameGrid.innerHTML = '';
+                    
+                    // Add each name to the grid
+                    names.forEach(name => {
+                        const nameCard = document.createElement('div');
+                        nameCard.className = 'name-card';
+                        nameCard.dataset.id = name.id;
+                        
+                        // Add voted class if votes > 0
+                        if (name.votes > 0) {
+                            nameCard.classList.add('voted');
+                        }
+                        
+                        // Create source badge
+                        const sourceBadge = document.createElement('span');
+                        sourceBadge.className = 'source-badge ' + name.source;
+                        sourceBadge.textContent = name.source === 'ai' ? 'AI' : 'Custom';
+                        
+                        // Create vote count
+                        const voteCount = document.createElement('span');
+                        voteCount.className = 'vote-count';
+                        voteCount.textContent = name.votes;
+                        
+                        // Create name content
+                        const nameContent = document.createElement('div');
+                        nameContent.className = 'name-content';
+                        
+                        const nameTitle = document.createElement('h3');
+                        nameTitle.textContent = name.name;
+                        
+                        const nameDescription = document.createElement('p');
+                        nameDescription.textContent = name.description;
+                        
+                        // Assemble the card
+                        nameContent.appendChild(nameTitle);
+                        nameContent.appendChild(nameDescription);
+                        
+                        nameCard.appendChild(sourceBadge);
+                        nameCard.appendChild(voteCount);
+                        nameCard.appendChild(nameContent);
+                        
+                        // Add click event to toggle vote
+                        nameCard.addEventListener('click', function() {
+                            toggleVote(name.id, this);
+                        });
+                        
+                        nameGrid.appendChild(nameCard);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    loadingIndicator.style.display = 'none';
+                    nameGrid.innerHTML = '<p class="error">Error loading team names. Please try again.</p>';
+                });
+        }
+        
+        // Function to toggle vote for a name
+        function toggleVote(id, cardElement) {
+            const isVoted = cardElement.classList.contains('voted');
+            
+            fetch('/api/vote', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    id: id,
+                    remove: isVoted
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update the UI
+                    const voteCount = cardElement.querySelector('.vote-count');
+                    voteCount.textContent = data.votes;
+                    
+                    if (data.votes > 0) {
+                        cardElement.classList.add('voted');
+                    } else {
+                        cardElement.classList.remove('voted');
+                    }
+                    
+                    // Reorder the cards after a short delay
+                    setTimeout(loadNames, 500);
+                } else {
+                    alert('Error: ' + (data.error || 'Could not update vote'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+        
+        // Load names when the page loads
+        loadNames();
+        
+        // Custom Name Modal Functionality
+        const modal = document.getElementById('customNameModal');
+        const showButton = document.getElementById('showCustomForm');
+        const closeButton = document.querySelector('.close-button');
+        const cancelButton = document.getElementById('cancelCustom');
+        const customForm = document.getElementById('customNameForm');
+        
+        // Show modal
+        showButton.addEventListener('click', function() {
+            modal.classList.add('show');
+        });
+        
+        // Hide modal
+        function hideModal() {
+            modal.classList.remove('show');
+        }
+        
+        closeButton.addEventListener('click', hideModal);
+        cancelButton.addEventListener('click', hideModal);
+        
+        // Close modal when clicking outside
+        window.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                hideModal();
+            }
+        });
+        
+        // Handle form submission
+        customForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const name = document.getElementById('customName').value.trim();
+            const description = document.getElementById('customDescription').value.trim() || "A custom team name created by our team!";
+            
+            if (!name) {
+                alert('Please enter a team name');
+                return;
+            }
+            
+            // Submit custom name to API
+            fetch('/api/add-custom-name', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Your team name has been added!');
+                    customForm.reset();
+                    hideModal();
+                    // Reload names to show the new addition
+                    loadNames();
+                } else {
+                    alert('Error: ' + (data.error || 'Could not add team name'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    });
+</script>
+{% endblock %}

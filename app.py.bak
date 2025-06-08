@@ -1,0 +1,607 @@
+from flask import Flask, render_template, request, jsonify, redirect, url_for
+import google.generativeai as genai
+import json
+import os
+import uuid
+from datetime import datetime
+from config import GEMINI_API_KEY
+
+# Initialize Flask app
+app = Flask(__name__)
+
+# Configure Gemini API
+print(f"Configuring Gemini API with key: {GEMINI_API_KEY[:4]}...{GEMINI_API_KEY[-4:] if len(GEMINI_API_KEY) > 8 else ''}")
+
+# Test if the API key is valid before proceeding
+try:
+    # Configure the Gemini API with the API key
+    genai.configure(api_key=GEMINI_API_KEY)
+    
+    # Test if the API is working
+    print("Testing Gemini API connection...")
+    model = genai.GenerativeModel(model_name="gemini-2.5-flash-preview-05-20")
+    test_response = model.generate_content("Hello, are you working?")
+    print(f"API test successful: {test_response.text[:20]}...")
+    
+    # Set safety settings to allow creative content while maintaining appropriateness
+    safety_settings = [
+        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
+        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}
+    ]
+    
+    # Create the model we'll use with safety settings
+    print("Creating Gemini model instance...")
+    model = genai.GenerativeModel(
+        model_name="gemini-2.0-flash",  # Using the model you specified
+        safety_settings=safety_settings
+    )
+    
+    # Test the model
+    test_generation = model.generate_content("Generate a short team name for a robotics team.")
+    print(f"Model test successful: {test_generation.text}")
+    print("Gemini model initialized successfully")
+    
+    # Flag to indicate if Gemini API is working
+    GEMINI_WORKING = True
+    
+except Exception as e:
+    print(f"ERROR with Gemini API: {str(e)}")
+    print("Will fall back to local generation")
+    GEMINI_WORKING = False
+    model = None
+
+# Ensure data directory exists
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
+NAMES_FILE = os.path.join(DATA_DIR, 'names.json')
+
+if not os.path.exists(DATA_DIR):
+    os.makedirs(DATA_DIR)
+
+# Initialize names.json if it doesn't exist
+if not os.path.exists(NAMES_FILE):
+    with open(NAMES_FILE, 'w') as f:
+        json.dump([], f)
+
+# Helper functions
+def load_names():
+    try:
+        with open(NAMES_FILE, 'r') as f:
+            return json.load(f)
+    except (json.JSONDecodeError, FileNotFoundError):
+        return []
+
+def save_names(names):
+    with open(NAMES_FILE, 'w') as f:
+        json.dump(names, f, indent=2)
+        
+def generate_batch_id():
+    """Generate a unique batch ID using timestamp and random string"""
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    random_suffix = str(uuid.uuid4())[:8]
+    return f"{timestamp}-{random_suffix}"
+
+def generate_local_name():
+    """Generate a team name locally without using the API"""
+    import random
+    
+    # First parts of the team name - more diverse categories
+    first_parts = [
+        # Tech & Innovation (30%)
+        "Quantum", "Digital", "Cyber", "Techno", "Robo", "Mecha", "Nano", "Circuit", "Pixel", "Binary",
+        "Neural", "Fusion", "Laser", "Sonic", "Hyper", "Turbo",
+        
+        # Science & Engineering (30%)
+        "Cosmic", "Stellar", "Atomic", "Kinetic", "Velocity", "Momentum", "Gravity", "Spark", "Volt",
+        "Neutron", "Proton", "Catalyst", "Element", "Spectrum", "Matrix", "Vector",
+        
+        # UNEARTHED Theme (20%)
+        "Fossil", "Ancient", "Relic", "Artifact", "Chronos", "History", "Archaeo", "Epoch", "Strata",
+        "Unearth", "Legacy", "Vintage", "Heritage", "Jurassic", "Geological",
+        
+        # Creative & Fun (20%)
+        "Brick", "Block", "Mighty", "Thunder", "Lightning", "Blaze", "Apex", "Prime", "Elite",
+        "Dynamic", "Radical", "Omega", "Alpha", "Ultra", "Mega"
+    ]
+    
+    # Second parts of the team name - more diverse categories
+    second_parts = [
+        # Tech & Building (30%)
+        "Builders", "Engineers", "Inventors", "Creators", "Innovators", "Architects", "Coders", 
+        "Technicians", "Mechanics", "Designers", "Crafters", "Assemblers", "Makers", "Bots", "Bytes",
+        
+        # Action & Movement (30%)
+        "Force", "Squad", "Crew", "Team", "Legion", "Alliance", "Fusion", "Dynamo", "Pulse", "Wave",
+        "Surge", "Thrust", "Momentum", "Drive", "Power", 
+        
+        # UNEARTHED Theme (20%)
+        "Explorers", "Discoverers", "Pioneers", "Adventurers", "Researchers", "Scientists", "Diggers", 
+        "Excavators", "Seekers", "Finders", "Hunters", "Trackers", "Voyagers", "Navigators", "Pathfinders",
+        
+        # Creative & Fun (20%)
+        "Masters", "Champions", "Legends", "Heroes", "Titans", "Wizards", "Ninjas", "Rockets", "Stars",
+        "Sharks", "Dragons", "Phoenix", "Falcons", "Vipers", "Raptors"
+    ]
+    
+    # Descriptions based on the team name
+    descriptions = [
+        "Unearthing the past to build a better future!",
+        "Connecting ancient wisdom with modern innovation!",
+        "Exploring history's mysteries with LEGO ingenuity!",
+        "Digging deep to discover creative solutions!",
+        "Building bridges between past discoveries and future technology!",
+        "Excavating ideas to construct tomorrow's innovations!",
+        "Uncovering the building blocks of history with modern engineering!",
+        "Where archaeological discovery meets LEGO creativity!",
+        "Piecing together the past with the technology of tomorrow!",
+        "Engineering excellence inspired by historical innovations!"
+    ]
+    
+    # Generate a unique name by combining parts
+    name = f"{random.choice(first_parts)} {random.choice(second_parts)}"
+    description = random.choice(descriptions)
+    
+    print(f"Generated local name: {name}")
+    
+    return {
+        "name": name,
+        "description": description,
+        "generation_method": "local"
+    }
+
+
+# Track the last API request time
+from datetime import datetime
+last_api_request_time = datetime.now()
+
+def generate_team_name(batch_mode=False):
+    """Generate a team name using Gemini API with fallbacks"""
+    global last_api_request_time
+    
+    # Enforce cooldown period between API calls (2 seconds)
+    current_time = datetime.now()
+    time_since_last_request = (current_time - last_api_request_time).total_seconds()
+    if time_since_last_request < 2:  # 2-second cooldown
+        import time
+        time.sleep(2 - time_since_last_request)
+    
+    # Update the last request time
+    last_api_request_time = datetime.now()
+    
+    # Track which generation method we're using
+    generation_method = "gemini"
+    
+    # If Gemini API is not working, use local generation immediately
+    if not GEMINI_WORKING or model is None:
+        print("Gemini API not available, using local generation")
+        result = generate_local_name()
+        result["generation_method"] = "local"
+        
+        # Add batch-related fields if in batch mode
+        if batch_mode:
+            result["selected"] = False
+            result["batch_id"] = None  # Will be set by the caller
+            
+        return result
+    
+    try:
+        print("Attempting to generate team name with Gemini API...")
+        
+        # Use a shorter, more direct prompt with less theme focus
+        prompt = """
+        Create ONE unique and creative team name for a FIRST LEGO League robotics team (ages 9-16).
+        
+        IMPORTANT: Create a DIVERSE range of names. Only 30% of names should relate to the UNEARTHED archaeology theme.
+        The other 70% should focus on:
+        - Technology and innovation
+        - Robotics and engineering
+        - Creativity and problem-solving
+        - Teamwork and collaboration
+        - Science and discovery in general
+        
+        Return ONLY the team name - no quotes, no explanation, no additional text.
+        """
+        
+        # Add a timestamp to avoid any caching
+        import time, random
+        timestamp = time.time()
+        random_seed = random.randint(1000, 9999)
+        timestamp_prompt = f"{prompt}\n\nTimestamp: {timestamp}\nRandom: {random_seed}"
+        
+        print("Sending request to Gemini API for team name generation...")
+        
+        # Set generation parameters
+        generation_config = {
+            "temperature": 0.9,  # Higher temperature for more creativity
+            "top_p": 0.95,
+            "top_k": 40,
+            "max_output_tokens": 30,
+        }
+        
+        # Set a timeout for the API call
+        import threading
+        from concurrent.futures import ThreadPoolExecutor, TimeoutError
+        
+        def call_api():
+            return model.generate_content(
+                contents=timestamp_prompt,
+                generation_config=generation_config
+            )
+        
+        # Use ThreadPoolExecutor to set a timeout
+        with ThreadPoolExecutor() as executor:
+            future = executor.submit(call_api)
+            try:
+                response = future.result(timeout=10)  # 10 second timeout
+                
+                # Check if we got a valid response
+                if hasattr(response, 'text') and response.text and len(response.text.strip()) > 0:
+                    team_name = response.text.strip()
+                    print(f"Successfully generated team name: {team_name}")
+                else:
+                    print(f"ERROR: Empty or invalid response from Gemini API")
+                    # Fall back to local generation
+                    generation_method = "local"
+                    result = generate_local_name()
+                    return result
+            except TimeoutError:
+                print("Gemini API call timed out after 10 seconds")
+                generation_method = "local"
+                result = generate_local_name()
+                return result
+        
+        # Generate description for the team name
+        try:
+            print(f"Generating description for team name: {team_name}")
+            # Simpler description prompt with less theme focus
+            description_prompt = f"""
+            Write a short, engaging description (10-15 words) for a FIRST LEGO League team named "{team_name}".
+            
+            IMPORTANT: Match the description to the team name's theme. If the name relates to technology, focus on that.
+            If it relates to archaeology/UNEARTHED, focus on that theme. Make the description fit the name.
+            
+            Audience: Children aged 9-16
+            Tone: Positive, encouraging, fun
+            
+            Return ONLY the description - no quotes, no explanation.
+            """
+            
+            # Set generation parameters for more creativity in descriptions
+            description_config = {
+                "temperature": 0.8,
+                "top_p": 0.95,
+                "top_k": 40,
+                "max_output_tokens": 50,
+            }
+            
+            # Add randomness to prevent caching
+            random_seed = random.randint(1000, 9999)
+            timestamp = time.time()
+            description_prompt = f"{description_prompt}\n\nTimestamp: {timestamp}\nRandom: {random_seed}"
+            
+            # Set a timeout for the description API call
+            with ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: model.generate_content(
+                    contents=description_prompt,
+                    generation_config=description_config
+                ))
+                try:
+                    desc_response = future.result(timeout=5)  # 5 second timeout
+                    
+                    if hasattr(desc_response, 'text') and desc_response.text and len(desc_response.text.strip()) > 0:
+                        description = desc_response.text.strip()
+                        print(f"Successfully generated description: {description}")
+                    else:
+                        print("Empty description response, using fallback")
+                        raise Exception("Empty description response")
+                except TimeoutError:
+                    print("Description API call timed out")
+                    raise Exception("Description API timeout")
+                
+        except Exception as e:
+            print(f"Error generating description: {str(e)}")
+            # If we got a name from Gemini but description failed, mark as mixed
+            if generation_method == "gemini":
+                generation_method = "mixed"
+            
+            # Use our local description generator
+            descriptions = [
+                "Unearthing the past to build a better future!",
+                "Connecting ancient wisdom with modern innovation!",
+                "Exploring history's mysteries with LEGO ingenuity!",
+                "Digging deep to discover creative solutions!",
+                "Building bridges between past discoveries and future technology!",
+                "Excavating ideas to construct tomorrow's innovations!",
+                "Uncovering the building blocks of history with modern engineering!",
+                "Where archaeological discovery meets LEGO creativity!",
+                "Piecing together the past with the technology of tomorrow!",
+                "Engineering excellence inspired by historical innovations!"
+            ]
+            
+            description = random.choice(descriptions)
+        
+        result = {
+            "name": team_name,
+            "description": description,
+            "generation_method": generation_method
+        }
+        
+        print(f"Final result: {result}")
+        return result
+        
+    except Exception as e:
+        print(f"Error in main generate_team_name function: {str(e)}")
+        print("Falling back to local name generation")
+        
+        # Use our local name generator as a reliable fallback
+        result = generate_local_name()
+        result["generation_method"] = "local_fallback"
+        return result
+
+# Routes
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+@app.route('/generate')
+def generate():
+    return render_template('generate.html')
+
+@app.route('/batch')
+def batch():
+    return render_template('batch.html')
+
+@app.route('/finalize')
+def finalize():
+    return render_template('finalize.html')
+
+@app.route('/vote')
+def vote():
+    names = load_names()
+    return render_template('vote.html', names=names)
+
+# API Endpoints
+@app.route('/api/generate-name', methods=['POST'])
+def api_generate_name():
+    """API endpoint to generate a new team name"""
+    print("API endpoint called: /api/generate-name")
+    # Add a timestamp to ensure we get a fresh response
+    import time
+    current_time = time.time()
+    print(f"Request time: {current_time}")
+    
+    # Generate name with timestamp to avoid caching
+    result = generate_team_name()
+    
+    # Add a timestamp to the response for debugging
+    result["timestamp"] = current_time
+    
+    # Add unique ID
+    result['id'] = str(uuid.uuid4())
+    
+    # Initialize votes to 0
+    result['votes'] = 0
+    
+    return jsonify({
+        'success': True,
+        'name': result
+    })
+
+@app.route('/api/generate-batch', methods=['POST'])
+def api_generate_batch():
+    """API endpoint to generate a batch of team names"""
+    print("API endpoint called: /api/generate-batch")
+    # Add a timestamp to ensure we get a fresh response
+    import time
+    current_time = time.time()
+    print(f"Request time: {current_time}")
+    
+    # Generate batch of names
+    batch_size = 20
+    batch_id = generate_batch_id()
+    batch_names = []
+    
+    # Generate names in batch
+    for _ in range(batch_size):
+        result = generate_team_name(batch_mode=True)
+        
+        # Add common fields
+        result['timestamp'] = current_time
+        result['id'] = str(uuid.uuid4())
+        result['votes'] = 0
+        result['batch_id'] = batch_id
+        result['selected'] = False
+        
+        batch_names.append(result)
+        
+        # Add a small delay between API calls to avoid rate limiting
+        if GEMINI_WORKING and model is not None:
+            import time
+            time.sleep(0.5)
+    
+    return jsonify({
+        'success': True,
+        'batch_id': batch_id,
+        'names': batch_names
+    })
+
+@app.route('/api/save', methods=['POST'])
+def api_save():
+    """API endpoint to save a team name"""
+    print("API endpoint called: /api/save")
+    try:
+        data = request.get_json()
+        name_data = data.get('name', {})
+        
+        if not name_data:
+            return jsonify({
+                'success': False,
+                'error': 'No name data provided'
+            }), 400
+        
+        # Load existing names
+        names = load_names()
+        
+        # Check if this name already exists (by ID if provided)
+        name_id = name_data.get('id')
+        if name_id:
+            for i, existing_name in enumerate(names):
+                if existing_name.get('id') == name_id:
+                    # Update existing name
+                    names[i] = name_data
+                    save_names(names)
+                    return jsonify({'success': True, 'updated': True})
+        
+        # Add new name
+        names.append(name_data)
+        save_names(names)
+        
+        return jsonify({'success': True, 'updated': False})
+    except Exception as e:
+        print(f"Error saving name: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/save-shortlist', methods=['POST'])
+def api_save_shortlist():
+    """API endpoint to save multiple selected team names from a batch"""
+    print("API endpoint called: /api/save-shortlist")
+    try:
+        data = request.get_json()
+        selected_names = data.get('names', [])
+        
+        if not selected_names:
+            return jsonify({
+                'success': False,
+                'error': 'No names provided'
+            }), 400
+        
+        # Load existing names
+        names = load_names()
+        
+        # Track which names were added vs updated
+        added_count = 0
+        updated_count = 0
+        saved_names = []
+        
+        # Process each selected name
+        for selected_name in selected_names:
+            name_id = selected_name.get('id')
+            if not name_id:
+                continue
+                
+            # Check if name already exists
+            found = False
+            for i, existing_name in enumerate(names):
+                if existing_name.get('id') == name_id:
+                    # Update existing name
+                    names[i] = selected_name
+                    updated_count += 1
+                    saved_names.append(selected_name)
+                    found = True
+                    break
+            
+            # Add new name if not found
+            if not found:
+                names.append(selected_name)
+                added_count += 1
+                saved_names.append(selected_name)
+        
+        # Save updated names list
+        save_names(names)
+        
+        return jsonify({
+            'success': True, 
+            'added': added_count, 
+            'updated': updated_count,
+            'saved_names': saved_names
+        })
+    except Exception as e:
+        print(f"Error saving shortlist: {str(e)}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/add-custom-name', methods=['POST'])
+def api_add_custom_name():
+    data = request.json
+    
+    if not data.get('name'):
+        return jsonify({"success": False, "error": "Name is required"}), 400
+    
+    names = load_names()
+    
+    # Create new custom name entry
+    new_name = {
+        "id": str(uuid.uuid4()),
+        "name": data.get('name'),
+        "description": data.get('description', "A custom team name created by our team!"),
+        "votes": 0,
+        "source": "user",
+        "created_at": datetime.now().isoformat()
+    }
+    
+    names.append(new_name)
+    save_names(names)
+    
+    return jsonify({"success": True, "name": new_name})
+
+@app.route('/api/names', methods=['GET'])
+def api_get_names():
+    names = load_names()
+    return jsonify(names)
+
+@app.route('/api/vote', methods=['POST'])
+def api_vote():
+    data = request.json
+    name_id = data.get('id')
+    
+    if not name_id:
+        return jsonify({"success": False, "error": "No ID provided"}), 400
+    
+    names = load_names()
+    
+    for name in names:
+        if name['id'] == name_id:
+            # Toggle vote (increment or decrement)
+            if data.get('remove', False):
+                name['votes'] = max(0, name['votes'] - 1)
+            else:
+                name['votes'] = name['votes'] + 1
+            
+            save_names(names)
+            return jsonify({"success": True, "votes": name['votes']})
+    
+    return jsonify({"success": False, "error": "Name not found"}), 404
+
+@app.route('/api/add-custom-name', methods=['POST'])
+def api_add_custom_name():
+    """API endpoint to add a custom team name"""
+    print("API endpoint called: /api/add-custom-name")
+    data = request.json
+    
+    if not data.get('name'):
+        return jsonify({"success": False, "error": "Name is required"}), 400
+    
+    names = load_names()
+    
+    # Create new custom name entry
+    new_name = {
+        "id": str(uuid.uuid4()),
+        "name": data.get('name'),
+        "description": data.get('description', "A custom team name created by our team!"),
+        "votes": 0,
+        "source": "user",
+        "created_at": datetime.now().isoformat()
+    }
+    
+    names.append(new_name)
+    save_names(names)
+    
+    return jsonify({"success": True, "name": new_name})
+
+@app.route('/api/names', methods=['GET'])
+def api_get_names():
+    names = load_names()
+    return jsonify(names)
+
+if __name__ == '__main__':
+    app.run(debug=True)
