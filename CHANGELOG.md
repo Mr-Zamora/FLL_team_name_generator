@@ -2,6 +2,13 @@
 
 All notable changes to the FLL Team Name Generator project will be documented in this file.
 
+## [1.0.1] - 2025-06-09
+
+### Fixed
+- Fixed issue with mismatched descriptions where team names without animals would get descriptions mentioning random animals
+- Improved description generation to select templates that match the team name structure
+- Enhanced the `generate_description` function to filter templates based on team name components
+
 ## [1.0.0] - 2025-06-09
 
 ### Changed

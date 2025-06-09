@@ -212,7 +212,7 @@ def generate_prefix_animal():
 
 def generate_description(word1, word2, adjective=None):
     """
-    Generate a description using a template.
+    Generate a description using a template that matches the team name structure.
     
     Args:
         word1 (dict): First word component
@@ -223,9 +223,6 @@ def generate_description(word1, word2, adjective=None):
         str: Generated description
     """
     components = load_word_components()
-    
-    # Get a random template
-    template = random.choice(components["description_templates"])
     
     # If no adjective provided, get one
     if not adjective:
@@ -240,10 +237,59 @@ def generate_description(word1, word2, adjective=None):
     else:
         adjective_word = adjective.get("word", "Creative")
     
+    # Determine animal and noun words if needed
+    has_animal = False
+    animal_word = ""
+    has_noun = False
+    noun_word = ""
+    
+    # Check if the team name contains an animal
+    if "category" in word1 and word1["category"] == "animal":
+        has_animal = True
+        animal_word = word1.get("word", "Eagles")
+    elif "category" in word2 and word2["category"] == "animal":
+        has_animal = True
+        animal_word = word2.get("word", "Eagles")
+    
+    # Check if the team name contains a noun
+    if "category" in word1 and word1["category"] in ["tech", "mechanics", "building"]:
+        has_noun = True
+        noun_word = word1.get("word", "Robots")
+    elif "category" in word2 and word2["category"] in ["tech", "mechanics", "building"]:
+        has_noun = True
+        noun_word = word2.get("word", "Robots")
+    
+    # Filter templates based on team name structure
+    suitable_templates = []
+    for template in components["description_templates"]:
+        # If team has an animal, include templates with {animal}
+        if has_animal and "{animal}" in template:
+            suitable_templates.append(template)
+        # If team has a noun, include templates with {noun} or {nouns}
+        elif has_noun and ("{noun}" in template or "{nouns}" in template):
+            suitable_templates.append(template)
+        # Include templates that only use {prefix}, {suffix}, and {adjective}
+        elif not ("{animal}" in template or "{noun}" in template or "{nouns}" in template):
+            suitable_templates.append(template)
+    
+    # If no suitable templates found, use generic ones
+    if not suitable_templates:
+        suitable_templates = [
+            "{prefix} {suffix}: {adjective} problem solvers building the future with LEGO robotics!",
+            "The {adjective} {prefix} {suffix} constructing tomorrow's innovations through creative engineering!",
+            "Combining {adjective} thinking with robotic expertise to solve challenging problems!"
+        ]
+    
+    # Select a random template from suitable ones
+    template = random.choice(suitable_templates)
+    
     # Replace placeholders in template
     description = template.replace("{prefix}", prefix_word)
     description = description.replace("{suffix}", suffix_word)
     description = description.replace("{adjective}", adjective_word)
+    description = description.replace("{animal}", animal_word)
+    description = description.replace("{noun}", noun_word)
+    description = description.replace("{nouns}", noun_word)
     
     return description
 
