@@ -96,65 +96,132 @@
         
         // Function to toggle selection of a name
         function toggleSelection(tile, nameData) {
-            if (tile.classList.contains('selected')) {
-                // Deselect
-                tile.classList.remove('selected');
-                selectedNames = selectedNames.filter(name => name.id !== nameData.id);
-                nameData.selected = false;
-            } else {
-                // Select
-                tile.classList.add('selected');
-                selectedNames.push(nameData);
-                nameData.selected = true;
+            try {
+                if (!nameData || !nameData.id) {
+                    console.error('Invalid nameData in toggleSelection:', nameData);
+                    alert('Error: Cannot select this name due to missing data');
+                    return;
+                }
+                
+                if (tile.classList.contains('selected')) {
+                    // Deselect
+                    console.log('Deselecting name:', nameData.name, 'with ID:', nameData.id);
+                    tile.classList.remove('selected');
+                    selectedNames = selectedNames.filter(name => name.id !== nameData.id);
+                    nameData.selected = false;
+                } else {
+                    // Select
+                    console.log('Selecting name:', nameData.name, 'with ID:', nameData.id);
+                    tile.classList.add('selected');
+                    selectedNames.push(nameData);
+                    nameData.selected = true;
+                }
+                
+                updateSelectionCount();
+            } catch (error) {
+                console.error('Error in toggleSelection:', error, 'for nameData:', nameData);
+                alert('Error toggling selection. Please try again.');
             }
-            
-            updateSelectionCount();
         }
         
         // Function to create a name tile
         function createNameTile(nameData) {
-            // Clone the template
-            const tile = nameTileTemplate.content.cloneNode(true).querySelector('.name-tile');
-            
-            // Set data attributes and content
-            tile.dataset.id = nameData.id;
-            tile.querySelector('.team-name').textContent = nameData.name;
-            tile.querySelector('.description').textContent = nameData.description;
-            
-            // Add click handler for selection
-            tile.addEventListener('click', function() {
-                toggleSelection(tile, nameData);
-            });
-            
-            // If already selected, mark as selected
-            if (nameData.selected) {
-                tile.classList.add('selected');
+            try {
+                // Clone the template
+                const tile = nameTileTemplate.content.cloneNode(true).querySelector('.name-tile');
+                
+                // Log the nameData for debugging
+                console.log('Creating tile for name data:', JSON.stringify(nameData));
+                
+                // Check if nameData has all required properties
+                if (!nameData.id) {
+                    console.error('Missing ID in nameData:', nameData);
+                    nameData.id = 'missing-id-' + Math.random().toString(36).substring(2, 15);
+                }
+                
+                if (!nameData.name) {
+                    console.error('Missing name in nameData:', nameData);
+                    nameData.name = 'Unnamed Team';
+                }
+                
+                if (!nameData.description) {
+                    console.error('Missing description in nameData:', nameData);
+                    nameData.description = 'No description available';
+                }
+                
+                // Set data attributes and content
+                tile.dataset.id = nameData.id;
+                tile.querySelector('.team-name').textContent = nameData.name;
+                tile.querySelector('.description').textContent = nameData.description;
+                
+                // Add click handler for selection
+                tile.addEventListener('click', function() {
+                    toggleSelection(tile, nameData);
+                });
+                
+                // If already selected, mark as selected
+                if (nameData.selected) {
+                    tile.classList.add('selected');
+                }
+                
+                return tile;
+            } catch (error) {
+                console.error('Error creating name tile:', error, 'for nameData:', nameData);
+                // Create a fallback tile
+                const tile = nameTileTemplate.content.cloneNode(true).querySelector('.name-tile');
+                tile.dataset.id = 'error-' + Math.random().toString(36).substring(2, 15);
+                tile.querySelector('.team-name').textContent = 'Error Tile';
+                tile.querySelector('.description').textContent = 'There was an error creating this tile';
+                return tile;
             }
-            
-            return tile;
         }
         
         // Function to display batch of names
         function displayBatch(names) {
-            // Clear existing names
-            while (nameGrid.firstChild) {
-                nameGrid.removeChild(nameGrid.firstChild);
+            try {
+                console.log('Displaying batch of names:', names);
+                
+                // Check if names is an array
+                if (!Array.isArray(names)) {
+                    console.error('Names is not an array:', names);
+                    alert('Error: Received invalid data from server');
+                    loadingContainer.style.display = 'none';
+                    return;
+                }
+                
+                // Clear existing names
+                while (nameGrid.firstChild) {
+                    nameGrid.removeChild(nameGrid.firstChild);
+                }
+                
+                // Store the names
+                allNames = names;
+                
+                // Create and append tiles
+                const fragment = document.createDocumentFragment();
+                names.forEach((nameData, index) => {
+                    try {
+                        // Validate nameData
+                        if (!nameData || typeof nameData !== 'object') {
+                            console.error(`Invalid nameData at index ${index}:`, nameData);
+                            return; // Skip this item
+                        }
+                        
+                        const tile = createNameTile(nameData);
+                        fragment.appendChild(tile);
+                    } catch (error) {
+                        console.error(`Error processing name at index ${index}:`, error, nameData);
+                    }
+                });
+                
+                nameGrid.appendChild(fragment);
+            } catch (error) {
+                console.error('Error displaying batch:', error);
+                alert('Error displaying names. Please try again.');
+            } finally {
+                // Always hide loading indicator
+                loadingContainer.style.display = 'none';
             }
-            
-            // Store the names
-            allNames = names;
-            
-            // Create and append tiles
-            const fragment = document.createDocumentFragment();
-            names.forEach(nameData => {
-                const tile = createNameTile(nameData);
-                fragment.appendChild(tile);
-            });
-            
-            nameGrid.appendChild(fragment);
-            
-            // Hide loading indicator
-            loadingContainer.style.display = 'none';
         }
         
         // Function to generate a new batch
@@ -174,18 +241,30 @@
                     'Content-Type': 'application/json'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                console.log('API response received');
+                return response.json();
+            })
             .then(data => {
+                console.log('API data:', data);
                 if (data.success) {
                     currentBatchId = data.batch_id;
-                    displayBatch(data.names);
+                    if (Array.isArray(data.names)) {
+                        console.log(`Received ${data.names.length} names from API`);
+                        displayBatch(data.names);
+                    } else {
+                        console.error('API returned success but names is not an array:', data.names);
+                        alert('Error: Invalid data format received from server');
+                        loadingContainer.style.display = 'none';
+                    }
                 } else {
+                    console.error('API returned error:', data);
                     alert('Error: ' + (data.error || 'Could not generate names'));
                     loadingContainer.style.display = 'none';
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error with API call:', error);
                 alert('An error occurred. Please try again.');
                 loadingContainer.style.display = 'none';
             });

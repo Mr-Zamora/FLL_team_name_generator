@@ -1,0 +1,39 @@
+/* Responsive title adjustments for different screen sizes */
+
+/* For medium screens (between 480px and 768px) */
+@media (min-width: 481px) and (max-width: 768px) {
+  .title-text {
+    flex-direction: row !important; /* Keep on one line */
+    font-size: 1.4rem !important; /* Smaller font size */
+  }
+  
+  .title-line1, .title-line2 {
+    display: inline !important; /* Keep as inline */
+  }
+  
+  .site-title a {
+    flex-direction: row !important; /* Keep logo and text on same line */
+    align-items: center !important;
+  }
+  
+  .logo {
+    margin-right: 10px !important; /* Restore right margin */
+    margin-bottom: 0 !important; /* Remove bottom margin */
+    height: 35px !important; /* Slightly smaller logo */
+  }
+}
+
+/* For small screens (tablets/large phones in landscape) */
+@media (min-width: 601px) and (max-width: 768px) {
+  .title-text {
+    font-size: 1.5rem !important; /* Slightly larger than smallest screens */
+  }
+}
+
+/* For very small screens (below 480px) - keep the stacked layout */
+@media (max-width: 480px) {
+  /* Existing stacked layout is preserved */
+  .title-text {
+    font-size: 1.6rem; /* Adjust font size for very small screens */
+  }
+}

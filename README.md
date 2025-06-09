@@ -1,21 +1,22 @@
 # FLL Team Name Generator
 
-A lightweight, AI-powered web app that generates and displays FLL team names and allows users to save and vote on them. Designed to be minimal, child-friendly, and intuitive for the 2025-2026 UNEARTHED season.
+A lightweight web app that generates and displays FLL team names and allows users to save and vote on them. Designed to be minimal, child-friendly, and intuitive for the 2025-2026 UNEARTHED season.
 
 ## Features
 
-- Generate creative team names using Google's Gemini API
+- Generate creative team names using a local word combination system
 - Add custom team names
 - Vote on favorite names
 - Simple, responsive interface suitable for classroom use
 - No login required
+- No external API dependencies
 
 ## Project Structure
 
 ```
 FLL_team_name_generator/
 ├── app.py                  # Main Flask application
-├── config.py               # Configuration with API keys
+├── name_generator.py       # Local name generation module
 ├── requirements.txt        # Python dependencies
 ├── static/                 # Static assets
 │   ├── css/
@@ -28,7 +29,8 @@ FLL_team_name_generator/
 │   ├── generate.html       # Name generation screen
 │   └── vote.html           # Voting screen
 └── data/                   # Data storage
-    └── names.json          # JSON data store (created automatically)
+    ├── names.json          # JSON data store (created automatically)
+    └── word_components.json # Word components for name generation
 ```
 
 ## Setup Instructions
@@ -36,7 +38,6 @@ FLL_team_name_generator/
 ### Prerequisites
 
 - Python 3.8 or higher
-- Gemini API key (already configured in config.py)
 
 ### Installation
 

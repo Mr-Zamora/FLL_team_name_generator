@@ -104,15 +104,15 @@
                 const sourceIndicator = document.getElementById('sourceIndicator');
                 sourceIndicator.className = 'source-badge';
                 
-                if (data.generation_method === 'gemini') {
-                    sourceIndicator.classList.add('gemini');
-                    sourceIndicator.textContent = 'AI Generated';
-                } else if (data.generation_method === 'local' || data.generation_method === 'local_fallback') {
+                if (data.generation_method === 'local' || data.generation_method === 'local_fallback') {
                     sourceIndicator.classList.add('local');
-                    sourceIndicator.textContent = 'Locally Generated';
-                } else if (data.generation_method === 'local_description') {
-                    sourceIndicator.classList.add('mixed');
-                    sourceIndicator.textContent = 'Mixed Source';
+                    sourceIndicator.textContent = 'Generated';
+                } else if (data.source === 'user') {
+                    sourceIndicator.classList.add('user');
+                    sourceIndicator.textContent = 'User Created';
+                } else {
+                    sourceIndicator.classList.add('local');
+                    sourceIndicator.textContent = 'Generated';
                 }
                 
                 // Hide loading, show content

@@ -2,12 +2,12 @@
 
 ## Product Overview
 
-A lightweight, AI-powered web app that generates and displays FLL team names and allows users to save and vote on them. Designed to be minimal, child-friendly, and intuitive.
+A lightweight web app that generates and displays FLL team names and allows users to save and vote on them. Designed to be minimal, child-friendly, and intuitive.
 
 ## Goals
 
 - Help teams quickly brainstorm fun and meaningful team names
-- Use AI to personalize names and inspire students
+- Use creative name combinations to inspire students
 - Create a simple interface suitable for both classroom and competition use
 
 ## Success Metrics
@@ -32,9 +32,9 @@ A lightweight, AI-powered web app that generates and displays FLL team names and
 
 - Welcome screen with option to generate names or add custom names
 - Generate → Vote workflow
-- Gemini integration for AI-generated names + descriptions
+- Local name generator for team names + descriptions
 - Manual entry for custom team names
-- JSON data store for both AI and user-submitted names/votes
+- JSON data store for both generated and user-submitted names/votes
 - No user accounts, no persistent sessions
 
 ## Timeline
@@ -42,7 +42,7 @@ A lightweight, AI-powered web app that generates and displays FLL team names and
 | Phase | Deliverables | Timeframe |
 |-------|-------------|-----------|
 | Phase 1 | Flask backend, static screens | Week 1 |
-| Phase 2 | Gemini API connection | Week 2 |
+| Phase 2 | Local name generator implementation | Week 2 |
 | Phase 3 | JSON voting and toggle logic | Week 3 |
 | Phase 4 | Testing + polish | Week 4 |
 
@@ -59,13 +59,13 @@ A lightweight, AI-powered web app that generates and displays FLL team names and
 
 - No user authentication
 - No server database (JSON only)
-- Gemini quota limits
-- Configuration stored in `config.py` (no environment variables used)
+- No external API dependencies
+- Simple configuration (no environment variables used)
 
 ## Appendices
 
 - Color palette samples
-- Gemini prompt samples
+- Word component samples
 - Accessibility checklist
 
 ---

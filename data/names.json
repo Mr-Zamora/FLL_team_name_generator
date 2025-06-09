@@ -182,5 +182,75 @@
     "selected": true,
     "timestamp": 1749379289.665697,
     "votes": 0
+  },
+  {
+    "batch_id": "20250609-143138-6faead31",
+    "description": "The Creative Turbo Foxes constructing tomorrow's innovations through creative engineering!",
+    "generation_method": "word_combination",
+    "id": "90f2919e-d4c0-4286-8ffb-df61b73a6c3b",
+    "name": "Turbo Foxes",
+    "selected": true,
+    "timestamp": 1749443498.988856,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-143138-6faead31",
+    "description": "Building robots with Ingenious design and programming skills!",
+    "generation_method": "word_combination",
+    "id": "a583c26a-a58c-4d52-bd6f-347e1917ff0d",
+    "name": "Ingenious Eagles",
+    "selected": true,
+    "timestamp": 1749443498.988856,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-143138-6faead31",
+    "description": "Where Skillful ideas meet technical excellence in LEGO robotics competitions!",
+    "generation_method": "word_combination",
+    "id": "41609856-2bb3-49af-9000-2d27307660d6",
+    "name": "Quantum Systems",
+    "selected": true,
+    "timestamp": 1749443498.988856,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-143138-6faead31",
+    "description": "Turning Creative concepts into winning LEGO robot designs!",
+    "generation_method": "word_combination",
+    "id": "c61f3a16-74bb-4c97-a2cb-e57f6d707d80",
+    "name": "Digital Circuits",
+    "selected": true,
+    "timestamp": 1749443498.988856,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-145402-b722a8dd",
+    "description": "Digital Sharks: Dynamic problem solvers building the future with LEGO robotics!",
+    "generation_method": "word_combination",
+    "id": "28d4e6df-106d-4304-b9fe-65bf25828ce7",
+    "name": "Digital Sharks",
+    "selected": true,
+    "timestamp": 1749444842.481674,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-145402-b722a8dd",
+    "description": "Combining Agile thinking with robotic expertise to solve challenging problems!",
+    "generation_method": "word_combination",
+    "id": "9385a639-3734-4265-8482-11ea057df2cc",
+    "name": "Cyber Panthers",
+    "selected": true,
+    "timestamp": 1749444842.481674,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-145402-b722a8dd",
+    "description": "Combining Precise thinking with robotic expertise to solve challenging problems!",
+    "generation_method": "word_combination",
+    "id": "ac85e787-24a8-4502-856b-d14738e320ae",
+    "name": "Laser Phoenixes",
+    "selected": true,
+    "timestamp": 1749444842.481674,
+    "votes": 0
   }
 ]

@@ -2,6 +2,30 @@
 
 All notable changes to the FLL Team Name Generator project will be documented in this file.
 
+## [1.0.0] - 2025-06-09
+
+### Changed
+- **Major architectural change:** Completely replaced Gemini API with a local rule-based name generator
+- Implemented a modular name_generator.py module with four name generation patterns:
+  - prefix + suffix
+  - prefix + noun
+  - adjective + animal
+  - prefix + animal
+- Added word_components.json with structured word components and compatibility tags
+- Removed all external API dependencies for improved reliability and performance
+- Fixed JSON decoding errors in API endpoints with robust request handling
+- Fixed UnboundLocalError for RECENT_GENERATED_NAMES with proper global variable declaration
+
+### Removed
+- Removed all Gemini API code, imports, and prompt engineering
+- Removed config.py with API keys
+- Removed prompts.py module
+- Removed all Gemini API documentation files
+- Removed google-generativeai dependency from requirements.txt
+
+### Security
+- Eliminated dependency on external API keys
+
 ## [0.3.2] - 2025-06-08
 
 ### Added

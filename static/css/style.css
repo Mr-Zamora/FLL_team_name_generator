@@ -420,16 +420,12 @@ textarea {
   color: white;
 }
 
-.source-badge.gemini {
-  background-color: #4285F4; /* Google blue */
-}
-
 .source-badge.local {
-  background-color: #EA4335; /* Google red */
+  background-color: #34A853; /* Green */
 }
 
-.source-badge.mixed {
-  background-color: #FBBC05; /* Google yellow */
+.source-badge.user {
+  background-color: #4285F4; /* Blue */
 }
 
 .name-content h2 {

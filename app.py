@@ -1,17 +1,14 @@
 from flask import Flask, render_template, request, jsonify, redirect, url_for
-import google.generativeai as genai
 import json
 import os
 import uuid
-import time
-import random
-import threading
 import re
 import shutil
-from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from datetime import datetime
-from config import GEMINI_API_KEY
-from prompts import get_team_name_prompt, get_generation_parameters, get_random_local_team_name
+from flask import Flask, render_template, jsonify, request, send_from_directory
+
+# Import name_generator functions for local generation
+from name_generator import generate_team_name, generate_batch, get_random_team_name
 
 # Global variables to track generated names and avoid repetition
 RECENT_GENERATED_NAMES = set()
@@ -20,48 +17,8 @@ MAX_RECENT_NAMES = 100  # How many recent names to remember
 # Initialize Flask app
 app = Flask(__name__)
 
-# Configure Gemini API
-print(f"Configuring Gemini API with key: {GEMINI_API_KEY[:4]}...{GEMINI_API_KEY[-4:] if len(GEMINI_API_KEY) > 8 else ''}")
-
-# Test if the API key is valid before proceeding
-try:
-    # Configure the Gemini API with the API key
-    genai.configure(api_key=GEMINI_API_KEY)
-    
-    # Test if the API is working
-    print("Testing Gemini API connection...")
-    model = genai.GenerativeModel(model_name="gemini-2.5-flash-preview-05-20")
-    test_response = model.generate_content("Hello, are you working?")
-    print(f"API test successful: {test_response.text[:20]}...")
-    
-    # Set safety settings to allow creative content while maintaining appropriateness
-    safety_settings = [
-        {"category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"},
-        {"category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_MEDIUM_AND_ABOVE"}
-    ]
-    
-    # Create the model we'll use with safety settings
-    print("Creating Gemini model instance...")
-    model = genai.GenerativeModel(
-        model_name="gemini-2.0-flash-lite",  # Using the faster model for better performance
-        safety_settings=safety_settings
-    )
-    
-    # Test the model
-    test_generation = model.generate_content("Generate a short team name for a robotics team.")
-    print(f"Model test successful: {test_generation.text}")
-    print("Gemini model initialized successfully")
-    
-    # Flag to indicate if Gemini API is working
-    GEMINI_WORKING = True
-    
-except Exception as e:
-    print(f"ERROR with Gemini API: {str(e)}")
-    print("Will fall back to local generation")
-    GEMINI_WORKING = False
-    model = None
+# Print startup message
+print("Starting FLL Team Name Generator...")
 
 # Ensure data directory exists
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
@@ -142,245 +99,90 @@ def generate_batch_id():
     return f"{timestamp}-{random_suffix}"
 
 def generate_local_name():
-    """Generate a team name locally without using the API"""
-    # Use the function from prompts.py
-    result = get_random_local_team_name()
+    """Generate a team name locally using our word combination system"""
+    # Use the function from name_generator.py
+    result = get_random_team_name()
     print(f"Generated local name: {result['name']}")
     return result
 
 
-# Track the last API request time
+# Track the last API request time for rate limiting
 from datetime import datetime
 last_api_request_time = datetime.now()
 
-def generate_team_name(batch_mode=False):
-    """Generate a team name using Gemini API with fallbacks"""
-    global last_api_request_time
+def generate_team_name(batch_mode=False, session_id=None):
+    """Generate a team name using the word combination system.
     
-    # Enforce cooldown period between API calls (2 seconds)
+    Args:
+        batch_mode (bool): Whether this is part of a batch generation
+        session_id (str): Optional session ID (kept for API compatibility)
+        
+    Returns:
+        dict: A dictionary with name and description
+    """
+    global RECENT_GENERATED_NAMES, last_api_request_time
+    
+    # Enforce cooldown period between generations (0.5 seconds)
     current_time = datetime.now()
     time_since_last_request = (current_time - last_api_request_time).total_seconds()
-    if time_since_last_request < 2:  # 2-second cooldown
+    if time_since_last_request < 0.5:  # 0.5-second cooldown
         import time
-        time.sleep(2 - time_since_last_request)
+        time.sleep(0.5 - time_since_last_request)
     
     # Update the last request time
     last_api_request_time = datetime.now()
     
-    # Track which generation method we're using
-    generation_method = "gemini"
+    # Load existing names to avoid duplicates
+    names = load_names()
+    existing_names = [name["name"] for name in names]
     
-    # If Gemini API is not working, use local generation immediately
-    if not GEMINI_WORKING or model is None:
-        print("Gemini API not available, using local generation")
-        result = generate_local_name()
-        result["generation_method"] = "local"
-        
-        # Add batch-related fields if in batch mode
-        if batch_mode:
-            result["selected"] = False
-            result["batch_id"] = None  # Will be set by the caller
-            
-        return result
+    # If we're in batch mode, we want to avoid any names we've generated recently
+    # to ensure variety in the batch
+    avoid_names = RECENT_GENERATED_NAMES.union(set(existing_names)) if batch_mode else set(existing_names)
     
-    try:
-        print("Attempting to generate team name with Gemini API...")
+    print("Generating team name using word combination system...")
+    
+    # Generate a name using our new name generator
+    for _ in range(5):  # Try up to 5 times to avoid duplicates
+        name_data = get_random_team_name()
         
-        # Get prompts from the prompts module
-        prompts = get_team_name_prompt(batch_mode=batch_mode)
-        system_prompt = prompts["system_prompt"]
-        user_prompt = prompts["user_prompt"]
-        
-        # Add randomness to ensure diverse results
-        timestamp = time.time()
-        random_seed = random.randint(1000, 9999)
-        
-        # Add a randomness instruction to encourage diversity
-        creativity_boost = [
-            "Be wildly creative and avoid common patterns!",
-            "Think outside the box with this team name!",
-            "Create something truly unique and unexpected!",
-            "Surprise me with an original team name concept!",
-            "Use unexpected word combinations for maximum creativity!"
-        ]
-        
-        # Add a random theme suggestion to increase diversity
-        themes = [
-            "space exploration", "quantum physics", "digital art", 
-            "ocean technology", "sustainable innovation", "musical robots",
-            "data visualization", "artificial intelligence", "virtual reality",
-            "nanotechnology", "renewable energy", "biomimicry",
-            "cosmic phenomena", "marine biology", "geometric patterns",
-            "mythological creatures", "weather phenomena", "ancient civilizations",
-            "futuristic transportation", "optical illusions", "molecular gastronomy"
-        ]
-        
-        # Add specific instruction to avoid repetition
-        avoid_names = ", ".join(list(RECENT_GENERATED_NAMES)[:10]) if RECENT_GENERATED_NAMES else "Tech Titans, Code Crafters, Brick Builders"
-        avoid_instruction = f"\n\nIMPORTANT: DO NOT generate any of these previously used names: {avoid_names}"
-        
-        # Select random creativity boost and theme
-        selected_boost = random.choice(creativity_boost)
-        selected_theme = random.choice(themes)
-        
-        timestamp_prompt = f"{user_prompt}\n\n{selected_boost}\nConsider incorporating elements of {selected_theme} if it inspires you.{avoid_instruction}\n\nTimestamp: {timestamp}\nRandom: {random_seed}"
-        
-        print("Sending request to Gemini API for team name generation...")
-        
-        # Get generation parameters from prompts.py
-        generation_config = get_generation_parameters(creativity_level="high")
-        
-        # Set a timeout for the API call
-        import threading
-        from concurrent.futures import ThreadPoolExecutor, TimeoutError
-        
-        def call_api():
-            return model.generate_content(
-                contents=timestamp_prompt,
-                generation_config=generation_config
-            )
-        
-        # Use ThreadPoolExecutor to set a timeout
-        with ThreadPoolExecutor() as executor:
-            future = executor.submit(call_api)
-            try:
-                response = future.result(timeout=10)  # 10 second timeout
+        # Check if this name is in our avoid list
+        if name_data["name"].lower() not in [name.lower() for name in avoid_names]:
+            # Add to recent names
+            RECENT_GENERATED_NAMES.add(name_data["name"])
+            if len(RECENT_GENERATED_NAMES) > MAX_RECENT_NAMES:
+                # Remove oldest name (convert to list first for pop)
+                recent_names_list = list(RECENT_GENERATED_NAMES)
+                recent_names_list.pop(0)
+                RECENT_GENERATED_NAMES = set(recent_names_list)
+            
+            # Add batch-related fields if in batch mode
+            if batch_mode:
+                name_data["selected"] = False
+                name_data["batch_id"] = None  # Will be set by the caller
                 
-                # Check if we got a valid response
-                if hasattr(response, 'text') and response.text and len(response.text.strip()) > 0:
-                    response_text = response.text.strip()
-                    print(f"Raw response from Gemini API: {response_text}")
-                    
-                    # Parse the new format (TEAM NAME: and DESCRIPTION:)
-                    team_name = None
-                    description = None
-                    
-                    # Look for TEAM NAME: pattern
-                    name_match = re.search(r'TEAM NAME:\s*(.+?)(?:\n|$)', response_text)
-                    if name_match:
-                        team_name = name_match.group(1).strip()
-                    
-                    # Look for DESCRIPTION: pattern
-                    desc_match = re.search(r'DESCRIPTION:\s*(.+?)(?:\n|$)', response_text)
-                    if desc_match:
-                        description = desc_match.group(1).strip()
-                    
-                    # If we found both parts, we can skip generating a description separately
-                    if team_name and description:
-                        print(f"Successfully parsed team name: {team_name}")
-                        print(f"Successfully parsed description: {description}")
-                        
-                        # Clean the team name to remove any JSON formatting that might have slipped through
-                        team_name = clean_team_name(team_name)
-                        
-                        # Create the result directly
-                        result = {
-                            "name": team_name,
-                            "description": description,
-                            "generation_method": generation_method
-                        }
-                        return result
-                    else:
-                        # If we couldn't parse the format, just use the whole response as the team name
-                        team_name = response_text
-                        print(f"Could not parse formatted response, using raw text as team name: {team_name}")
-                else:
-                    print(f"ERROR: Empty or invalid response from Gemini API")
-                    # Fall back to local generation
-                    generation_method = "local"
-                    result = generate_local_name()
-                    return result
-            except TimeoutError:
-                print("Gemini API call timed out after 10 seconds")
-                generation_method = "local"
-                result = generate_local_name()
-                return result
+            print(f"Generated team name: {name_data['name']}")
+            return name_data
         
-        # Generate description for the team name
-        try:
-            print(f"Generating description for team name: {team_name}")
-            # Use a themed prompt for the description
-            description_prompt = f"""
-            Write a short, engaging description (10-15 words) for a FIRST LEGO League team named "{team_name}".
-            
-            IMPORTANT: Match the description to the team name's theme. If the name relates to technology, focus on that.
-            If it relates to archaeology/UNEARTHED, focus on that theme. Make the description fit the name.
-            
-            Audience: Children aged 9-16
-            Tone: Positive, encouraging, fun
-            
-            Return ONLY the description - no quotes, no explanation.
-            """
-            
-            # Get generation parameters from prompts.py with medium creativity
-            description_config = get_generation_parameters(creativity_level="medium")
-            
-            # Add randomness to prevent caching
-            random_seed = random.randint(1000, 9999)
-            timestamp = time.time()
-            description_prompt = f"{description_prompt}\n\nTimestamp: {timestamp}\nRandom: {random_seed}"
-            
-            # Set a timeout for the description API call
-            with ThreadPoolExecutor() as executor:
-                future = executor.submit(lambda: model.generate_content(
-                    contents=description_prompt,
-                    generation_config=description_config
-                ))
-                try:
-                    desc_response = future.result(timeout=5)  # 5 second timeout
-                    
-                    if hasattr(desc_response, 'text') and desc_response.text and len(desc_response.text.strip()) > 0:
-                        description = desc_response.text.strip()
-                        print(f"Successfully generated description: {description}")
-                    else:
-                        print("Empty description response, using fallback")
-                        raise Exception("Empty description response")
-                except TimeoutError:
-                    print("Description API call timed out")
-                    raise Exception("Description API timeout")
-                
-        except Exception as e:
-            print(f"Error generating description: {str(e)}")
-            # If we got a name from Gemini but description failed, mark as mixed
-            if generation_method == "gemini":
-                generation_method = "mixed"
-            
-            # Use our local description generator
-            descriptions = [
-                "Unearthing the past to build a better future!",
-                "Connecting ancient wisdom with modern innovation!",
-                "Exploring history's mysteries with LEGO ingenuity!",
-                "Digging deep to discover creative solutions!",
-                "Building bridges between past discoveries and future technology!",
-                "Excavating ideas to construct tomorrow's innovations!",
-                "Uncovering the building blocks of history with modern engineering!",
-                "Where archaeological discovery meets LEGO creativity!",
-                "Piecing together the past with the technology of tomorrow!",
-                "Engineering excellence inspired by historical innovations!"
-            ]
-            
-            description = random.choice(descriptions)
-        
-        # Clean the team name to remove any JSON formatting
-        cleaned_name = clean_team_name(team_name)
-        
-        result = {
-            "name": cleaned_name,
-            "description": description,
-            "generation_method": generation_method
-        }
-        
-        print(f"Final result: {result}")
-        return result
-        
-    except Exception as e:
-        print(f"Error in main generate_team_name function: {str(e)}")
-        print("Falling back to local name generation")
-        
-        # Use our local name generator as a reliable fallback
-        result = generate_local_name()
-        result["generation_method"] = "local_fallback"
-        return result
+    # If we couldn't generate a unique name after 5 tries, add a random suffix
+    name_data = get_random_team_name()
+    name_data["name"] = f"{name_data['name']} {random.randint(1, 99)}"
+    
+    # Add to recent names
+    RECENT_GENERATED_NAMES.add(name_data["name"])
+    if len(RECENT_GENERATED_NAMES) > MAX_RECENT_NAMES:
+        # Remove oldest name (convert to list first for pop)
+        recent_names_list = list(RECENT_GENERATED_NAMES)
+        recent_names_list.pop(0)
+        RECENT_GENERATED_NAMES = set(recent_names_list)
+    
+    # Add batch-related fields if in batch mode
+    if batch_mode:
+        name_data["selected"] = False
+        name_data["batch_id"] = None  # Will be set by the caller
+    
+    print(f"Generated team name with random suffix: {name_data['name']}")
+    return name_data
 
 # Routes
 @app.route('/')
@@ -419,7 +221,27 @@ def api_generate_name():
     current_time = time.time()
     print(f"Request time: {current_time}")
     
-    # Generate name with timestamp to avoid caching
+    # Get session ID from request if available - handle both JSON and form data
+    try:
+        if request.is_json:
+            data = request.get_json() or {}
+        else:
+            # Handle form data or empty requests
+            data = {}
+    except Exception as e:
+        print(f"Error parsing request data: {str(e)}")
+        data = {}
+        
+    session_id = data.get('session_id')
+    
+    # If no session ID provided, create a new one
+    if not session_id:
+        session_id = str(uuid.uuid4())
+        print(f"Created new session ID: {session_id}")
+    else:
+        print(f"Using provided session ID: {session_id}")
+    
+    # Generate name (session_id kept for API compatibility but not used)
     result = generate_team_name()
     
     # Add a timestamp to the response for debugging
@@ -431,6 +253,9 @@ def api_generate_name():
     # Initialize votes to 0
     result['votes'] = 0
     
+    # Include session ID in response
+    result['session_id'] = session_id
+    
     return jsonify({
         'success': True,
         'name': result
@@ -438,125 +263,71 @@ def api_generate_name():
 
 @app.route('/api/generate-batch', methods=['POST'])
 def api_generate_batch():
-    """API endpoint to generate a batch of team names"""
+    """API endpoint to generate a batch of team names using our word combination system"""
     print("API endpoint called: /api/generate-batch")
     # Add a timestamp to ensure we get a fresh response
     import time
     current_time = time.time()
     print(f"Request time: {current_time}")
     
-    # Function to check if a name is too similar to existing names
-    def is_too_similar(new_name, existing_names):
-        """Check if a name is an exact duplicate of existing names"""
-        if not new_name or not existing_names:
-            return False
-            
-        # Convert to lowercase for comparison
-        new_name_lower = new_name.lower()
-        
-        # Only check for exact matches to speed up generation
-        for name_obj in existing_names:
-            if isinstance(name_obj, dict):
-                existing_name = name_obj.get('name', '').lower()
-            else:
-                existing_name = str(name_obj).lower()
-                
-            if existing_name == new_name_lower:
-                return True
-        
-        return False
-    
-    # Generate batch of names
-    batch_size = 20
-    batch_id = generate_batch_id()
-    batch_names = []
-    
-    # Load existing names to check for duplicates
     try:
-        existing_names = load_names()
-    except:
-        existing_names = []
-    
-    # Keep track of names generated in this batch to avoid duplicates
-    current_batch_names = []
-    
-    # Generate all names at once for maximum speed
-    print(f"Generating {batch_size} team names in one batch...")
-    
-    # Generate names all at once
-    for i in range(batch_size):
+        # Get parameters from request - handle both JSON and form data
         try:
-            print(f"Generating name {i+1}/{batch_size}...")
-            result = generate_team_name(batch_mode=True)
+            if request.is_json:
+                data = request.get_json() or {}
+            else:
+                # Handle form data or empty requests
+                data = {}
+        except Exception as e:
+            print(f"Error parsing request data: {str(e)}")
+            data = {}
             
-            # Clean the team name
-            result['name'] = clean_team_name(result['name'])
+        batch_size = data.get('count', 20)  # Default to 20 names
+        
+        # Limit to reasonable number
+        batch_size = min(max(batch_size, 5), 50)  # Between 5 and 50
+        
+        print(f"Generating {batch_size} team names in one batch...")
+        
+        # Load existing names to avoid duplicates
+        existing_names = load_names()
+        existing_name_strings = [name["name"] for name in existing_names]
+        
+        # Use our new batch generation function from name_generator.py
+        batch_names = generate_batch(count=batch_size, existing_names=existing_name_strings)
+        
+        print(f"Successfully generated {len(batch_names)} team names")
+        
+        # Ensure all names have required fields
+        global RECENT_GENERATED_NAMES, MAX_RECENT_NAMES
+        
+        for name in batch_names:
+            # Clean the team name if needed
+            if 'name' in name:
+                name['name'] = clean_team_name(name['name'])
             
-            # Track this name to avoid duplicates in future generations
-            global RECENT_GENERATED_NAMES
-            RECENT_GENERATED_NAMES.add(result['name'])
+            # Add to recent names set to avoid repetition
+            RECENT_GENERATED_NAMES.add(name['name'])
             
             # Keep the set at a reasonable size
             if len(RECENT_GENERATED_NAMES) > MAX_RECENT_NAMES:
                 # Remove oldest items (convert to list, remove first items, convert back)
                 temp_list = list(RECENT_GENERATED_NAMES)
                 RECENT_GENERATED_NAMES = set(temp_list[-MAX_RECENT_NAMES:])
-            
-            # Add common fields
-            result['timestamp'] = current_time
-            result['id'] = str(uuid.uuid4())
-            result['votes'] = 0
-            result['batch_id'] = batch_id
-            result['selected'] = False
-            
-            batch_names.append(result)
-            
-            # No delay needed with flash-lite model
-            
-        except Exception as e:
-            print(f"Error generating team name: {str(e)}")
-            continue
-            
-    # If we didn't get enough names, fill with some defaults
-    if len(batch_names) < batch_size:
-        print(f"Only generated {len(batch_names)} names, adding {batch_size - len(batch_names)} default names")
         
-        # Use our creative names from prompts.py to fill in any gaps
-        from prompts import LOCAL_TEAM_NAME_OPTIONS
+        # Get the batch ID from the first name (all should have the same batch ID)
+        batch_id = batch_names[0].get('batch_id') if batch_names else generate_batch_id()
         
-        # Get a random sample of names we haven't used yet
-        available_defaults = []
-        for name_obj in LOCAL_TEAM_NAME_OPTIONS:
-            if name_obj["name"] not in RECENT_GENERATED_NAMES:
-                available_defaults.append(name_obj)
-        
-        # If we've used all our defaults, just use them all again
-        if not available_defaults:
-            available_defaults = LOCAL_TEAM_NAME_OPTIONS
-            
-        # Shuffle to get random order
-        random.shuffle(available_defaults)
-        default_names = available_defaults
-        
-        # Add as many default names as needed
-        for i in range(min(batch_size - len(batch_names), len(default_names))):
-            name_data = default_names[i]
-            batch_names.append({
-                "id": str(uuid.uuid4()),
-                "name": name_data["name"],
-                "description": name_data["description"],
-                "votes": 0,
-                "batch_id": batch_id,
-                "selected": False,
-                "timestamp": current_time,
-                "generation_method": "default"
-            })
-    
-    return jsonify({
-        'success': True,
-        'batch_id': batch_id,
-        'names': batch_names
-    })
+        return jsonify({
+            'success': True,
+            'names': batch_names,
+            'batch_id': batch_id
+        })
+    except Exception as e:
+        print(f"Error generating batch: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/api/save', methods=['POST'])
 def api_save():
@@ -651,8 +422,6 @@ def api_save_shortlist():
     except Exception as e:
         print(f"Error saving shortlist: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
-
-# Routes for custom name and getting names moved to avoid duplication
 
 @app.route('/api/vote', methods=['POST'])
 def api_vote():
