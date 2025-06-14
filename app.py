@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session
 import json
 import os
 import uuid
@@ -16,6 +16,7 @@ MAX_RECENT_NAMES = 100  # How many recent names to remember
 
 # Initialize Flask app
 app = Flask(__name__)
+app.secret_key = 'fll_team_name_generator_secret_key_2025'  # Less secure but easier to manage
 
 # Print startup message
 print("Starting FLL Team Name Generator...")
@@ -431,18 +432,35 @@ def api_vote():
     if not name_id:
         return jsonify({"success": False, "error": "No ID provided"}), 400
     
+    # Initialize user votes in session if needed
+    if 'voted_names' not in session:
+        session['voted_names'] = []
+    
     names = load_names()
     
     for name in names:
         if name['id'] == name_id:
-            # Toggle vote (increment or decrement)
-            if data.get('remove', False):
+            # Check if user has already voted for this name
+            if name_id in session['voted_names']:
+                # Remove vote
+                session['voted_names'].remove(name_id)
                 name['votes'] = max(0, name['votes'] - 1)
+                user_voted = False
             else:
+                # Add vote
+                session['voted_names'].append(name_id)
                 name['votes'] = name['votes'] + 1
+                user_voted = True
             
+            # Save changes
+            session.modified = True
             save_names(names)
-            return jsonify({"success": True, "votes": name['votes']})
+            
+            return jsonify({
+                "success": True, 
+                "votes": name['votes'],
+                "user_voted": user_voted
+            })
     
     return jsonify({"success": False, "error": "Name not found"}), 404
 
@@ -475,6 +493,15 @@ def api_add_custom_name():
 @app.route('/api/names', methods=['GET'])
 def api_get_names():
     names = load_names()
+    
+    # Initialize user votes in session if needed
+    if 'voted_names' not in session:
+        session['voted_names'] = []
+    
+    # Add user_voted flag to each name
+    for name in names:
+        name['user_voted'] = name['id'] in session['voted_names']
+    
     return jsonify(names)
 
 @app.route('/api/remove-zero-votes', methods=['POST'])

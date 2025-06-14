@@ -8,6 +8,7 @@
 {% endblock %}
 
 {% block content %}
+
 <section class="vote">
     <h2>Vote for Your Favourite Team Names</h2>
     <p>Click on a team name to vote for it. The most popular names will rise to the top!</p>
@@ -86,8 +87,8 @@
                         nameCard.className = 'name-card';
                         nameCard.dataset.id = name.id;
                         
-                        // Add voted class if votes > 0
-                        if (name.votes > 0) {
+                        // Add voted class if this user has voted for it
+                        if (name.user_voted) {
                             nameCard.classList.add('voted');
                         }
                         
@@ -136,16 +137,14 @@
         
         // Function to toggle vote for a name
         function toggleVote(id, cardElement) {
-            const isVoted = cardElement.classList.contains('voted');
-            
+            // Send vote request to server
             fetch('/api/vote', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    id: id,
-                    remove: isVoted
+                    id: id
                 })
             })
             .then(response => response.json())
@@ -155,7 +154,8 @@
                     const voteCount = cardElement.querySelector('.vote-count');
                     voteCount.textContent = data.votes;
                     
-                    if (data.votes > 0) {
+                    // Update voted class based on user's vote status
+                    if (data.user_voted) {
                         cardElement.classList.add('voted');
                     } else {
                         cardElement.classList.remove('voted');

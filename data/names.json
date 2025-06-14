@@ -3,7 +3,7 @@
     "id": "80a90116-aee9-46e0-9cb4-5dd83323613e",
     "name": "Block Masters",
     "description": "Building the future, one brick at a time!",
-    "votes": 1,
+    "votes": 3,
     "source": "ai",
     "created_at": "2025-06-07T19:14:53.914685"
   },
@@ -251,6 +251,66 @@
     "name": "Laser Phoenixes",
     "selected": true,
     "timestamp": 1749444842.481674,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-152151-778a2f4a",
+    "description": "Building robots with Skillful design and programming skills!",
+    "generation_method": "word_combination",
+    "id": "5d9131ea-a86e-4e12-9649-93b07f681cbd",
+    "name": "Skillful Sharks",
+    "selected": true,
+    "timestamp": 1749446511.065759,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-152151-778a2f4a",
+    "description": "Building robots with Precise design and programming skills!",
+    "generation_method": "word_combination",
+    "id": "63a4761d-910e-4d80-bee5-d0d928364f15",
+    "name": "Sonic Dragons",
+    "selected": true,
+    "timestamp": 1749446511.065759,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-152151-778a2f4a",
+    "description": "Building robots with Creative design and programming skills!",
+    "generation_method": "word_combination",
+    "id": "4c738943-a664-401f-9813-09294d9b3b77",
+    "name": "Electro Blocks",
+    "selected": true,
+    "timestamp": 1749446511.065759,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-152151-778a2f4a",
+    "description": "Quantum Minds: Innovative problem solvers building the future with LEGO robotics!",
+    "generation_method": "word_combination",
+    "id": "2f99edd2-c5fb-476f-9184-692804382dab",
+    "name": "Quantum Minds",
+    "selected": true,
+    "timestamp": 1749446511.065759,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-152151-778a2f4a",
+    "description": "The Brilliant Laser Dragons constructing tomorrow's innovations through creative engineering!",
+    "generation_method": "word_combination",
+    "id": "aaefd56f-d1c0-42e1-a6b4-7119a1adce43",
+    "name": "Laser Dragons",
+    "selected": true,
+    "timestamp": 1749446511.065759,
+    "votes": 0
+  },
+  {
+    "batch_id": "20250609-152151-778a2f4a",
+    "description": "Combining Logic thinking with robotic expertise to solve challenging problems!",
+    "generation_method": "word_combination",
+    "id": "0a8a6363-86ec-4b2c-a206-9f4ed4e1788b",
+    "name": "Logic Dragons",
+    "selected": true,
+    "timestamp": 1749446511.065759,
     "votes": 0
   }
 ]
